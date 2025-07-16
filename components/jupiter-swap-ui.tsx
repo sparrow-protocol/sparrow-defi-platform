@@ -7,10 +7,10 @@ import { Input } from "@/components/ui/input"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Plus, Settings, ChevronDown, Search } from "lucide-react"
-import SwapInterface from "@/components/swap-interface" // Import the refactored SwapInterface
+import SwapInterface from "@/components/swap-interface"
 
 export default function JupiterSwapUI() {
-  const [activeTab, setActiveTab] = useState("instant") // This state is now managed within SwapInterface
+  const [activeTab, setActiveTab] = useState("instant")
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-[#0a0e17] text-white">

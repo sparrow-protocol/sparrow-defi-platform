@@ -1,6 +1,6 @@
-# 🐦 Sparrow Swap
+# Sparrow - DeFI Platform
 
-**Sparrow Swap** is a decentralized exchange (DEX) aggregator built on the **Solana blockchain**, designed to offer users fast, secure, and efficient token swaps. It aggregates liquidity from various DEXes to deliver the best swap rates, with features like wallet integration, swap customization, Solana Pay support, and transaction history.
+Sparrow**Swap** is a decentralized exchange (DEX) aggregator built on the **Solana blockchain**, designed to offer users fast, secure, and efficient token swaps. It aggregates liquidity from various DEXes to deliver the best swap rates, with features like wallet integration, swap customization, Solana Pay support, and transaction history.
 
 ---
 
@@ -128,6 +128,12 @@ NEXT_PUBLIC_OPENAI_API_URL=https://api.openai.com/v1
 # === Neon Database ===
 
 DATABASE_URL=postgresql://username:password@host:port/database?sslmode=require
+DATABASE_URL_UNPOOLED==
+
+# === Auth & Identity ===
+
+NEXT_PUBLIC_PRIVY_APP_ID=
+APP_SECRET=
 
 # === Resend Email Service ===
 
@@ -187,13 +193,12 @@ MIT License. See [LICENSE](./LICENSE) for details.
 
 ## 🌐 Live Demo
 
-> Coming soon...
+* SparrowSwap Application: [sparrowswap.com](https://)
 
 ---
 
 ## 💬 Connect
 
-* Swap Application: [sparrowswap.com]
 * Official Website: [sparrowprotocol.net](https://sparrowprotocol.net)
 * Twitter: [@SparrowProtocol](https://twitter.com/SparrowProtocol)
 * Discord: [Join our community](https://discord.gg/SparrowProtocol)

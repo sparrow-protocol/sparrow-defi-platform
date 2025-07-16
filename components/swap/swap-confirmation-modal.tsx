@@ -37,11 +37,25 @@ export function SwapConfirmationModal({
   outputAmount,
   isSwapping,
 }: SwapConfirmationModalProps) {
-  if (!quote || !sellingToken || !buyingToken) {
-    return null // Should not happen if opened correctly
-  }
+  if (!quote || !sellingToken || !buyingToken) return null
 
-  const priceImpact = quote.priceImpactPct * 100
+  const priceImpact = (quote.priceImpactPct ?? 0) * 100
+
+  const inputDecimals = sellingToken.decimals ?? 0
+  const outputDecimals = buyingToken.decimals ?? 0
+
+  const formattedInput = formatNumber(parseFloat(inputAmount), 6)
+  const formattedOutput = formatNumber(parseFloat(outputAmount), 6)
+
+  const minReceived =
+    Number(quote.outAmountWithSlippage) / Math.pow(10, outputDecimals)
+
+  const platformFee =
+    quote.platformFee?.amount &&
+    formatNumber(
+      Number(quote.platformFee.amount) / Math.pow(10, inputDecimals),
+      6
+    )
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -52,44 +66,44 @@ export function SwapConfirmationModal({
             Review the details of your swap before confirming.
           </DialogDescription>
         </DialogHeader>
+
         <div className="grid gap-4 py-4 text-black dark:text-white">
           <div className="flex justify-between items-center">
             <span className="text-black/70 dark:text-light-gray">You are selling:</span>
             <span className="font-semibold text-lg">
-              {formatNumber(Number(inputAmount), 6)} {sellingToken.symbol}
+              {formattedInput} {sellingToken.symbol}
             </span>
           </div>
+
           <div className="flex justify-between items-center">
             <span className="text-black/70 dark:text-light-gray">You will receive:</span>
             <span className="font-semibold text-lg">
-              {formatNumber(Number(outputAmount), 6)} {buyingToken.symbol}
+              {formattedOutput} {buyingToken.symbol}
             </span>
           </div>
+
           <div className="flex justify-between items-center text-sm">
             <span className="text-black/70 dark:text-light-gray">Price Impact:</span>
-            <span className={`${priceImpact > 1 ? "text-negative-red" : "text-positive-green"}`}>
+            <span className={priceImpact > 1 ? "text-negative-red" : "text-positive-green"}>
               {formatNumber(priceImpact, 2)}%
             </span>
           </div>
+
           <div className="flex justify-between items-center text-sm">
             <span className="text-black/70 dark:text-light-gray">Minimum Received:</span>
             <span>
-              {formatNumber(Number(quote.outAmountWithSlippage) / Math.pow(10, buyingToken.decimals), 6)}{" "}
-              {buyingToken.symbol}
+              {formatNumber(minReceived, 6)} {buyingToken.symbol}
             </span>
           </div>
-          {/* New: Platform Fee Display in Confirmation Modal */}
-          {quote.platformFee && (
+
+          {platformFee && (
             <div className="flex justify-between items-center text-sm">
               <span className="text-black/70 dark:text-light-gray">Platform Fee:</span>
-              <span>
-                {formatNumber(Number(quote.platformFee.amount) / Math.pow(10, sellingToken.decimals), 6)}{" "}
-                {sellingToken.symbol}
-              </span>
+              <span>{platformFee} {sellingToken.symbol}</span>
             </div>
           )}
-          {/* Add more details like fees, route plan summary if desired */}
         </div>
+
         <DialogFooter>
           <Button variant="ghost" onClick={onClose} disabled={isSwapping}>
             Cancel

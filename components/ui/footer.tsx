@@ -2,31 +2,37 @@
 
 export function Footer() {
   return (
-    <footer className="bg-white p-4 text-center text-black border-t border-light-gray dark:bg-black dark:text-white dark:border-dark-gray">
-      <p className="text-black/70 dark:text-light-gray">&copy; 2025 Sparrow Protocol. All rights reserved.</p>
-      <div className="flex justify-center space-x-4 mt-2">
+    <footer className="border-t border-light-gray bg-white px-4 py-6 text-center text-black dark:border-dark-gray dark:bg-black dark:text-white">
+      <p className="text-sm text-black/70 dark:text-light-gray">
+        &copy; {new Date().getFullYear()} Sparrow Protocol. All rights reserved.
+      </p>
+
+      <nav className="mt-3 flex flex-wrap justify-center gap-4 text-sm">
         <a
           href="/privacy-policy"
-          className="text-black/70 hover:text-gold dark:text-light-gray dark:hover:text-gold text-sm"
+          className="text-black/70 hover:text-gold dark:text-light-gray dark:hover:text-gold transition-colors"
         >
           Privacy Policy
         </a>
         <a
           href="/terms-of-use"
-          className="text-black/70 hover:text-gold dark:text-light-gray dark:hover:text-gold text-sm"
+          className="text-black/70 hover:text-gold dark:text-light-gray dark:hover:text-gold transition-colors"
         >
           Terms of Use
         </a>
         <a
           href="/disclaimer"
-          className="text-black/70 hover:text-gold dark:text-light-gray dark:hover:text-gold text-sm"
+          className="text-black/70 hover:text-gold dark:text-light-gray dark:hover:text-gold transition-colors"
         >
           Disclaimer
         </a>
-        <a href="/about" className="text-black/70 hover:text-gold dark:text-light-gray dark:hover:text-gold text-sm">
+        <a
+          href="/about"
+          className="text-black/70 hover:text-gold dark:text-light-gray dark:hover:text-gold transition-colors"
+        >
           About Us
         </a>
-      </div>
+      </nav>
     </footer>
   )
 }

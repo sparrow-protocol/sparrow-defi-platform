@@ -2,14 +2,19 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
-import ClientLayout from "./client-layout" // Import ClientLayout
+import ClientLayout from "./client-layout"
 
-const inter = Inter({ subsets: ["latin"] })
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap"
+})
 
 export const metadata: Metadata = {
   title: "Sparrow Protocol",
   description: "Decentralized token swap platform",
-    generator: 'v0.dev'
+  other: {
+    author: "Sparrow Protocol"
+  }
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

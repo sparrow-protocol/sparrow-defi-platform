@@ -8,17 +8,19 @@ export default function HeroSection() {
       <Image
         src="/images/hero-background.png"
         alt="Gold coins background"
-        layout="fill"
-        objectFit="cover"
-        quality={100}
-        className="z-0 opacity-20 dark:opacity-10" // Adjust opacity for readability
+        fill
+        className="z-0 object-cover opacity-20 dark:opacity-10"
+        priority
       />
+
       {/* Overlay for readability */}
       <div className="absolute inset-0 z-10 bg-white opacity-80 dark:bg-black dark:opacity-80" />
 
       <div className="relative z-20 container flex flex-col items-center justify-center gap-8 px-4 md:px-6">
         <div className="text-center">
-          <p className="text-sm font-semibold uppercase tracking-wider text-gold mb-2">Welcome to Sparrow Protocol</p>
+          <p className="text-sm font-semibold uppercase tracking-wider text-gold mb-2">
+            Welcome to Sparrow Protocol
+          </p>
           <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl text-black dark:text-white">
             The Future of Decentralized Swaps
           </h1>

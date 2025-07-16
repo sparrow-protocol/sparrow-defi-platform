@@ -1,4 +1,3 @@
-// app/types/swap.ts
 import type { Token } from "./tokens"
 import type { JupiterQuoteResponse } from "./api"
 

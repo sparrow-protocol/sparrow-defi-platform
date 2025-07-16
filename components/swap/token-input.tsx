@@ -19,6 +19,7 @@ interface TokenInputProps {
   onHalfClick?: () => void
   readOnly?: boolean
   isFetchingQuote?: boolean
+  usdValue?: string
 }
 
 export function TokenInput({
@@ -32,12 +33,15 @@ export function TokenInput({
   onHalfClick,
   readOnly = false,
   isFetchingQuote = false,
+  usdValue = "$0",
 }: TokenInputProps) {
+  const showBalance = balance !== undefined && balance !== null && !isNaN(balance)
+
   return (
     <div className="rounded-lg bg-input-bg-light p-4 dark:bg-input-bg-dark shadow-sm">
       <div className="flex items-center justify-between text-sm text-black/70 dark:text-light-gray mb-2">
         <span>{label}</span>
-        {balance !== undefined && balance !== null && (
+        {showBalance && (
           <div className="flex items-center space-x-2">
             <span>
               Balance: {formatNumber(balance, 6)} {selectedToken?.symbol}
@@ -65,6 +69,7 @@ export function TokenInput({
           </div>
         )}
       </div>
+
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
         <Button
           onClick={onSelectTokenClick}
@@ -86,17 +91,23 @@ export function TokenInput({
           )}
           <ChevronDown className="h-4 w-4 text-gold" />
         </Button>
+
         <div className="text-right w-full sm:w-auto">
           <Input
             type="number"
+            inputMode="decimal"
             placeholder="0.00"
             value={isFetchingQuote && !readOnly ? "Fetching..." : amount}
-            onChange={onAmountChange}
+            onChange={(e) => {
+              const value = e.target.value
+              if (/^\d*\.?\d*$/.test(value)) {
+                onAmountChange(e)
+              }
+            }}
             readOnly={readOnly || isFetchingQuote}
             className="w-full sm:w-32 border-none bg-transparent text-right text-3xl font-bold text-black focus:ring-0 dark:text-white"
           />
-          {/* Placeholder for USD value, if available */}
-          <div className="text-sm text-black/70 dark:text-light-gray">$0</div>
+          <div className="text-sm text-black/70 dark:text-light-gray">{usdValue}</div>
         </div>
       </div>
     </div>

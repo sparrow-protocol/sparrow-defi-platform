@@ -1,4 +1,3 @@
-// app/types/index.ts
 export interface Token {
   symbol: string
   name: string
