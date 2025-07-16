@@ -80,23 +80,65 @@ yarn install
 Create a `.env.local` file in the root directory and add the following:
 
 ```env
-# Jupiter Aggregator
+# === Aggregators ===
+
+# Jupiter Aggregator API
 NEXT_PUBLIC_JUPITER_API_URL=https://quote-api.jup.ag/v6
 
-# Raydium (Optional)
+# Raydium Aggregator API (Optional)
 NEXT_PUBLIC_RAYDIUM_API_URL=https://api.raydium.io/v2
 
-# The Sparrow platform fee token account (Optional)
-NEXT_PUBLIC_PLATFORM_FEE_ACCOUNT=SPARROW_PLATFORM_FEE_TOKEN_ACCOUNT_ADDRESS
+# === Solana Configuration ===
 
-# The Sparrow Token (SPRW). Solana Token-2022 standard
-NEXT_PUBLIC_SPRW_MINT=
-
-# Solana RPC Endpoint
+# Main Solana RPC (Helius)
 NEXT_PUBLIC_HELIUS_RPC_URL=https://api.mainnet-beta.solana.com
 
-# PostgreSQL Database (via Neon)
-DATABASE_URL=postgresql://user:password@host:port/database
+# Additional Solana RPCs
+NEXT_PUBLIC_SOLANA_RPC_1=https://solana-api.projectserum.com
+NEXT_PUBLIC_SOLANA_RPC_2=https://rpc.ankr.com/solana
+NEXT_PUBLIC_SOLANA_RPC_3=https://solana-mainnet.g.alchemy.com/v2/YOUR_ALCHEMY_API_KEY
+
+# Sparrow platform fee token account (Optional)
+NEXT_PUBLIC_PLATFORM_FEE_ACCOUNT=SPARROW_PLATFORM_FEE_TOKEN_ACCOUNT_ADDRESS
+
+# Sparrow Token (SPRW) - Solana Token-2022 standard
+NEXT_PUBLIC_SPRW_MINT=YOUR_SPRW_TOKEN_MINT_ADDRESS
+
+# === Market Data Providers ===
+
+# Birdeye API
+NEXT_PUBLIC_BIRDEYE_API_URL=https://public-api.birdeye.so/public
+NEXT_PUBLIC_BIRDEYE_API_KEY=your-birdeye-api-key
+
+# CoinMarketCap API
+NEXT_PUBLIC_CMC_API_URL=https://pro-api.coinmarketcap.com/v1
+NEXT_PUBLIC_CMC_API_KEY=your-coinmarketcap-api-key
+
+# Dexscreener API
+NEXT_PUBLIC_DEXSCREENER_API_URL=https://api.dexscreener.com/latest/dex/pairs/solana
+
+# Pump.fun API
+NEXT_PUBLIC_PUMPFUN_API_URL=https://pump.fun/api
+
+# === OpenAI Integration ===
+
+OPENAI_API_KEY=your-openai-api-key
+NEXT_PUBLIC_OPENAI_API_URL=https://api.openai.com/v1
+
+# === Neon Database ===
+
+DATABASE_URL=postgresql://username:password@host:port/database?sslmode=require
+
+# === Resend Email Service ===
+
+# Resend API key for transactional email (https://resend.com)
+RESEND_API_KEY=your-resend-api-key
+
+# Default sender email (must be verified with Resend)
+EMAIL_FROM=
+
+# Optional: Support email or contact address
+EMAIL_SUPPORT=
 ```
 
 ---
