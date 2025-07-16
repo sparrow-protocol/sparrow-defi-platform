@@ -1,0 +1,86 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%; /* White */
+    --foreground: 222.2 84% 4.9%; /* Near Black */
+
+    --card: 0 0% 100%; /* White */
+    --card-foreground: 222.2 84% 4.9%; /* Near Black */
+
+    --popover: 0 0% 100%; /* White */
+    --popover-foreground: 222.2 84% 4.9%; /* Near Black */
+
+    --primary: 222.2 47.4% 11.2%; /* Dark Blue */
+    --primary-foreground: 210 40% 98%; /* Light Gray */
+
+    --secondary: 210 40% 96.1%; /* Light Gray */
+    --secondary-foreground: 222.2 47.4% 11.2%; /* Dark Blue */
+
+    --muted: 210 40% 96.1%; /* Light Gray */
+    --muted-foreground: 215.4 16.3% 46.9%; /* Gray */
+
+    --accent: 210 40% 96.1%; /* Light Gray */
+    --accent-foreground: 222.2 47.4% 11.2%; /* Dark Blue */
+
+    --destructive: 0 84.2% 60.2%; /* Red */
+    --destructive-foreground: 210 40% 98%; /* Light Gray */
+
+    --border: 214.3 31.8% 91.4%; /* Light Gray */
+    --input: 214.3 31.8% 91.4%; /* Light Gray */
+    --ring: 45 62% 69%; /* Gold */
+
+    --radius: 0.375rem; /* md radius */ --sidebar-background: 0 0% 98%; --sidebar-foreground: 240 5.3% 26.1%; --sidebar-primary: 240 5.9% 10%; --sidebar-primary-foreground: 0 0% 98%; --sidebar-accent: 240 4.8% 95.9%; --sidebar-accent-foreground: 240 5.9% 10%; --sidebar-border: 220 13% 91%; --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%; /* Near Black */
+    --foreground: 210 40% 98%; /* Light Gray */
+
+    --card: 222.2 84% 4.9%; /* Near Black */
+    --card-foreground: 210 40% 98%; /* Light Gray */
+
+    --popover: 222.2 84% 4.9%; /* Near Black */
+    --popover-foreground: 210 40% 98%; /* Light Gray */
+
+    --primary: 210 40% 98%; /* Light Gray */
+    --primary-foreground: 222.2 47.4% 11.2%; /* Dark Blue */
+
+    --secondary: 217.2 32.6% 17.5%; /* Dark Gray */
+    --secondary-foreground: 210 40% 98%; /* Light Gray */
+
+    --muted: 217.2 32.6% 17.5%; /* Dark Gray */
+    --muted-foreground: 215 20.2% 65.1%; /* Gray */
+
+    --accent: 217.2 32.6% 17.5%; /* Dark Gray */
+    --accent-foreground: 210 40% 98%; /* Light Gray */
+
+    --destructive: 0 62.8% 30.6%; /* Dark Red */
+    --destructive-foreground: 210 40% 98%; /* Light Gray */
+
+    --border: 217.2 32.6% 17.5%; /* Dark Gray */
+    --input: 217.2 32.6% 17.5%; /* Dark Gray */
+    --ring: 45 62% 69%; /* Gold */ --sidebar-background: 240 5.9% 10%; --sidebar-foreground: 240 4.8% 95.9%; --sidebar-primary: 224.3 76.3% 48%; --sidebar-primary-foreground: 0 0% 100%; --sidebar-accent: 240 3.7% 15.9%; --sidebar-accent-foreground: 240 4.8% 95.9%; --sidebar-border: 240 3.7% 15.9%; --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Custom fonts - assuming Geist is available or a similar sans-serif */
+/* For Geist font, you would typically import it from @vercel/og or similar. */
+/* For this example, we'll rely on default sans-serif or system fonts. */
+.font-light-custom {
+  font-weight: 300; /* Light */
+}
+.font-geist-bold {
+  font-weight: 700; /* Bold */
+}
