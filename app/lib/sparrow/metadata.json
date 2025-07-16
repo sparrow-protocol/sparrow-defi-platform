@@ -1,0 +1,31 @@
+{
+  "name": "Sparrow",
+  "symbol": "SPRW",
+  "description": "Sparrow is the native utility token of the Sparrow DeFi platform for swapping, yield, and governance.",
+  "image": "https://cdn.sparrowprotocol.net/tokens/sprw.png",
+  "external_url": "https://sparrowprotocol.net",
+  "seller_fee_basis_points": 0,
+  "attributes": [
+    { "trait_type": "Category", "value": "Utility" },
+    { "trait_type": "Platform", "value": "Solana" }
+  ],
+  "collection": {
+    "name": "Sparrow Protocol",
+    "family": "DeFi"
+  },
+  "properties": {
+    "files": [
+      {
+        "uri": "https://cdn.sparrowprotocol.net/tokens/sprw.png",
+        "type": "image/png"
+      }
+    ],
+    "category": "image",
+    "creators": [
+      {
+        "address": "SPARROW_CREATOR_WALLET_ADDRESS",
+        "share": 100
+      }
+    ]
+  }
+}

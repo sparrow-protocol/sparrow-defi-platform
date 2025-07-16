@@ -11,6 +11,7 @@ export const COINGECKO_API_BASE_URL = "https://api.coingecko.com/api/v3"
 export const COINGECKO_ID_MAP: { [mintAddress: string]: string } = {
   So11111111111111111111111111111111111111112: "solana", // SOL
   EPjFWdd5AufqSSqeM2qN1xzybapTVG4itwqZNfwpPJ55: "usd-coin", // USDC
+  //: "Sparrow", // SPRW
   // Add other common tokens here if needed
 }
 
