@@ -1,71 +1,65 @@
 "use client"
 
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useCallback,
-  useEffect,
-  type ReactNode,
-} from "react"
+import * as React from "react"
+
+import type { ToastAction } from "@/components/ui/toast"
+import { toast as showShadcnToast } from "@/components/ui/use-toast"
 
 export type ToastType = "success" | "error" | "info" | "warning"
 
-interface Toast {
-  message: string
-  type: ToastType
-}
-
 interface ToastOptions {
-  message: string
+  title?: string
+  description?: string
   type?: ToastType
   duration?: number
+  action?: React.ReactElement<typeof ToastAction>
 }
 
 interface ToastContextType {
-  showToast: (options: ToastOptions) => void
+  toast: (options: ToastOptions) => void
 }
 
-const ToastContext = createContext<ToastContextType | undefined>(undefined)
+const ToastContext = React.createContext<ToastContextType | undefined>(undefined)
 
-export const ToastProvider = ({ children }: { children: ReactNode }) => {
-  const [toast, setToast] = useState<Toast | null>(null)
+export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
+  const toast = React.useCallback(({ title, description, type = "info", duration = 3000, action }: ToastOptions) => {
+    let variant: "default" | "destructive" = "default"
+    let className = ""
 
-  const showToast = useCallback(
-    ({ message, type = "info", duration = 3000 }: ToastOptions) => {
-      setToast({ message, type })
-      const timeout = setTimeout(() => setToast(null), duration)
-      return () => clearTimeout(timeout)
-    },
-    []
-  )
+    switch (type) {
+      case "success":
+        className = "bg-positive-green text-white"
+        break
+      case "error":
+        variant = "destructive"
+        className = "bg-negative-red text-white"
+        break
+      case "warning":
+        className = "bg-yellow-500 text-white"
+        break
+      case "info":
+      default:
+        className = "bg-blue-500 text-white"
+        break
+    }
 
-  const bgColor =
-    toast?.type === "success"
-      ? "bg-green-600"
-      : toast?.type === "error"
-      ? "bg-red-600"
-      : toast?.type === "warning"
-      ? "bg-yellow-500"
-      : "bg-blue-500"
+    showShadcnToast({
+      title: title || type.charAt(0).toUpperCase() + type.slice(1),
+      description,
+      duration,
+      variant,
+      className,
+      action,
+    })
+  }, [])
 
-  return (
-    <ToastContext.Provider value={{ showToast }}>
-      {children}
-      {toast && (
-        <div
-          className={`fixed bottom-4 right-4 z-50 rounded px-4 py-3 text-white shadow-lg transition-all duration-300 ${bgColor}`}
-          onClick={() => setToast(null)}
-        >
-          {toast.message}
-        </div>
-      )}
-    </ToastContext.Provider>
-  )
+  return <ToastContext.Provider value={{ toast }}>{children}</ToastContext.Provider>
 }
 
 export const useToast = (): ToastContextType => {
-  const context = useContext(ToastContext)
-  if (!context) throw new Error("useToast must be used within a ToastProvider")
+  const context = React.useContext(ToastContext)
+  if (!context) {
+    throw new Error("useToast must be used within a ToastProvider")
+  }
   return context
 }

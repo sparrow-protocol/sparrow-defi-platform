@@ -1,204 +1,277 @@
-# Sparrow - DeFI Platform
+# Sparrow - DeFi Platform
 
-Sparrow**Swap** is a decentralized exchange (DEX) aggregator built on the **Solana blockchain**, designed to offer users fast, secure, and efficient token swaps. It aggregates liquidity from various DEXes to deliver the best swap rates, with features like wallet integration, swap customization, Solana Pay support, and transaction history.
-
----
+A comprehensive decentralized finance (DeFi) platform built on Solana, offering token swaps, payments, portfolio management, and advanced trading features.
 
 ## 🚀 Features
 
-- ⚡ **Instant Token Swaps**  
-  Fast, efficient SPL token exchanges using Jupiter Aggregator’s ExactIn mode.
+### Core Features
+- **Token Swaps**: Seamless token swapping powered by Jupiter aggregator
+- **Solana Pay**: QR code-based payments and transactions
+- **Portfolio Management**: Track your token balances and transaction history
+- **Real-time Charts**: Live price charts and market data
+- **Multi-wallet Support**: Support for Phantom, Solflare, Backpack, and more
+- **Embedded Wallets**: Privy-powered embedded wallet solution
 
-- 💸 **Pay & Receive (ExactOut)**  
-  Merchants can specify the exact token/amount to receive; users can pay with any supported token.
+### Advanced Features
+- **Exact Output Swaps**: Specify exact output amounts for swaps
+- **Slippage Protection**: Customizable slippage tolerance
+- **Transaction History**: Complete transaction tracking and history
+- **Price Alerts**: Real-time price monitoring and alerts
+- **Dark/Light Mode**: Full theme support
+- **Responsive Design**: Mobile-first responsive interface
 
-- 🔐 **Wallet Integration**  
-  Connect with popular wallets like **Phantom** and **Solflare** via Solana Wallet Adapter.
+## 🛠 Tech Stack
 
-- ⚙️ **Customizable Swap Settings**  
-  Set slippage, transaction speed, MEV protection, and custom platform fees.
+### Frontend
+- **Next.js 14**: React framework with App Router
+- **TypeScript**: Type-safe development
+- **Tailwind CSS**: Utility-first CSS framework
+- **shadcn/ui**: Modern UI component library
+- **Recharts**: Data visualization and charts
 
-- 🔍 **Dynamic Token Selection**  
-  Pulls token lists from Jupiter and Solana Labs with a reliable fallback system.
+### Backend & Database
+- **Neon Database**: Serverless PostgreSQL database
+- **Prisma**: Database ORM and migrations
+- **Server Actions**: Next.js server-side functions
+- **Upstash Redis**: Caching and rate limiting
 
-- 📜 **Transaction History**  
-  View, sort, and paginate past swaps and payments with detailed insights.
+### Blockchain & Web3
+- **Solana Web3.js**: Solana blockchain interaction
+- **Jupiter API**: Token swap aggregation
+- **Raydium API**: Liquidity pool data
+- **Helius RPC**: Enhanced Solana RPC services
+- **Privy**: Embedded wallet infrastructure
 
-- 📱 **Solana Pay Integration**  
-  Generate QR codes for Solana Pay on-ramp transactions.
+### APIs & Services
+- **Birdeye API**: Token price and market data
+- **CoinMarketCap API**: Cryptocurrency data
+- **Dexscreener API**: DEX trading data
+- **OpenAI API**: AI-powered features
 
-- 📈 **Token Price Charts**  
-  Historical price visualization powered by CoinGecko.
+## 📦 Installation
 
-- 💻 **Responsive UI**  
-  Optimized for mobile and desktop experiences.
+### Prerequisites
+- Node.js 18+ and pnpm
+- PostgreSQL database (Neon recommended)
+- Solana wallet for testing
 
-- 🌓 **Theme Toggle**  
-  Light and dark mode support.
+### Environment Setup
 
----
-
-## 🧰 Tech Stack
-
-| Tech                  | Description                                              |
-|-----------------------|----------------------------------------------------------|
-| **Next.js**           | React framework using App Router                         |
-| **React**             | Core frontend library                                    |
-| **Tailwind CSS**      | Utility-first CSS framework                              |
-| **shadcn/ui**         | Prebuilt UI components (Radix + Tailwind)                |
-| **Solana Web3.js**    | Solana blockchain interaction                            |
-| **Jupiter Aggregator API** | Fetches best swap routes (ExactIn / ExactOut)       |
-| **CoinGecko API**     | Historical token price data                              |
-| **Neon Database**     | PostgreSQL database for transaction storage              |
-| **Solana Wallet Adapter** | Wallet connection (Phantom, Solflare, etc.)         |
-| **date-fns**          | Date/time formatting utilities                           |
-| **qrcode**            | Generate Solana Pay QR codes                             |
-
----
-
-## 🛠️ Getting Started
-
-### 1. Clone the Repository
-
-```bash
-git clone https://github.com/sparrow-protocol/sparrow-defi-platform
+1. Clone the repository:
+\`\`\`bash
+git clone https://github.com/your-username/sparrow-defi-platform.git
 cd sparrow-defi-platform
-````
+\`\`\`
 
-### 2. Install Dependencies
-
-Using your preferred package manager:
-
-```bash
+2. Install dependencies:
+\`\`\`bash
 pnpm install
-# or
-yarn install
-```
+\`\`\`
 
-### 3. Configure Environment Variables
+3. Set up environment variables:
+\`\`\`bash
+cp .env.example .env.local
+\`\`\`
 
-Create a `.env.local` file in the root directory and add the following:
+4. Configure your `.env.local` file with the required API keys and database URL:
 
-```env
-# === Aggregators ===
+\`\`\`env
+# Database
+DATABASE_URL="postgresql://username:password@host:port/database"
+POSTGRES_URL="postgresql://username:password@host:port/database"
 
-# Jupiter Aggregator API
-NEXT_PUBLIC_JUPITER_API_URL=https://quote-api.jup.ag/v6
+# Solana RPC URLs
+NEXT_PUBLIC_HELIUS_RPC_URL="https://rpc.helius.xyz/?api-key=YOUR_KEY"
+NEXT_PUBLIC_SOLANA_RPC_1="https://api.mainnet-beta.solana.com"
 
-# Raydium Aggregator API (Optional)
-NEXT_PUBLIC_RAYDIUM_API_URL=https://api.raydium.io/v2
+# API Keys
+NEXT_PUBLIC_BIRDEYE_API_KEY="your_birdeye_api_key"
+NEXT_PUBLIC_CMC_API_KEY="your_coinmarketcap_api_key"
+HELIUS_API_KEY="your_helius_api_key"
+OPENAI_API_KEY="your_openai_api_key"
 
-# === Solana Configuration ===
+# Privy Configuration
+NEXT_PUBLIC_PRIVY_APP_ID="your_privy_app_id"
+APP_SECRET="your_privy_app_secret"
 
-# Main Solana RPC (Helius)
-NEXT_PUBLIC_HELIUS_RPC_URL=https://api.mainnet-beta.solana.com
+# Platform Configuration
+NEXT_PUBLIC_PLATFORM_FEE_ACCOUNT="your_fee_account_address"
+NEXT_PUBLIC_SPRW_MINT="your_token_mint_address"
+\`\`\`
 
-# Additional Solana RPCs
-NEXT_PUBLIC_SOLANA_RPC_1=https://solana-api.projectserum.com
-NEXT_PUBLIC_SOLANA_RPC_2=https://rpc.ankr.com/solana
-NEXT_PUBLIC_SOLANA_RPC_3=https://solana-mainnet.g.alchemy.com/v2/YOUR_ALCHEMY_API_KEY
+5. Set up the database:
+\`\`\`bash
+pnpm db:setup
+\`\`\`
 
-# Sparrow platform fee token account (Optional)
-NEXT_PUBLIC_PLATFORM_FEE_ACCOUNT=SPARROW_PLATFORM_FEE_TOKEN_ACCOUNT_ADDRESS
+6. Run database migrations:
+\`\`\`bash
+pnpm db:migrate
+\`\`\`
 
-# Sparrow Token (SPRW) - Solana Token-2022 standard
-NEXT_PUBLIC_SPRW_MINT=YOUR_SPRW_TOKEN_MINT_ADDRESS
+### Development
 
-# === Market Data Providers ===
-
-# Birdeye API
-NEXT_PUBLIC_BIRDEYE_API_URL=https://public-api.birdeye.so/public
-NEXT_PUBLIC_BIRDEYE_API_KEY=your-birdeye-api-key
-
-# CoinMarketCap API
-NEXT_PUBLIC_CMC_API_URL=https://pro-api.coinmarketcap.com/v1
-NEXT_PUBLIC_CMC_API_KEY=your-coinmarketcap-api-key
-
-# Dexscreener API
-NEXT_PUBLIC_DEXSCREENER_API_URL=https://api.dexscreener.com/latest/dex/pairs/solana
-
-# Pump.fun API
-NEXT_PUBLIC_PUMPFUN_API_URL=https://pump.fun/api
-
-# === OpenAI Integration ===
-
-OPENAI_API_KEY=your-openai-api-key
-NEXT_PUBLIC_OPENAI_API_URL=https://api.openai.com/v1
-
-# === Neon Database ===
-
-DATABASE_URL=postgresql://username:password@host:port/database?sslmode=require
-DATABASE_URL_UNPOOLED==
-
-# === Auth & Identity ===
-
-NEXT_PUBLIC_PRIVY_APP_ID=
-APP_SECRET=
-
-# === Resend Email Service ===
-
-# Resend API key for transactional email (https://resend.com)
-RESEND_API_KEY=your-resend-api-key
-
-# Default sender email (must be verified with Resend)
-EMAIL_FROM=
-
-# Optional: Support email or contact address
-EMAIL_SUPPORT=
-```
-
----
-
-## 🧪 Development
-
-To start the local development server:
-
-```bash
+Start the development server:
+\`\`\`bash
 pnpm dev
-# or
-yarn dev
-```
+\`\`\`
 
----
+The application will be available at `http://localhost:3000`.
 
-## 📦 Build for Production
+### Building for Production
 
-```bash
+1. Build the application:
+\`\`\`bash
 pnpm build
+\`\`\`
+
+2. Start the production server:
+\`\`\`bash
 pnpm start
-# or
-yarn build
-yarn start
-```
+\`\`\`
 
----
+## 🗄 Database Schema
 
-## ✅ Roadmap & Contributions
+### Tables
 
-Planned improvements include:
+#### `transactions`
+- Transaction history and status tracking
+- Supports swaps, payments, and transfers
+- Includes fee tracking and metadata
 
-* Enhanced token analytics
-* Notifications for swap success/failure
-* Mobile-native PWA support
+#### `payment_requests`
+- Solana Pay payment request management
+- QR code generation and status tracking
+- Support for SPL tokens and SOL
 
-Want to contribute? Feel free to fork the repo, create a branch, and submit a PR. Be sure to follow best practices and include tests when possible.
+#### `users` (Optional)
+- User profile and wallet management
+- Preferences and settings storage
 
----
+### Migrations
+
+Database migrations are located in the `scripts/` directory:
+- `001_create_transactions_table.sql`: Initial transaction table
+- `002_add_transaction_type_and_payment_fields.sql`: Payment features
+
+## 🔧 Configuration
+
+### Solana Network
+The platform supports both mainnet and devnet configurations. Update the RPC URLs in your environment variables to switch networks.
+
+### Token Lists
+Token information is fetched from:
+- Jupiter Token List (strict)
+- Solana Labs Token List
+- Custom Sparrow token metadata
+
+### Fee Configuration
+Platform fees are configurable via environment variables:
+- `PLATFORM_FEE_BPS`: Basis points for platform fees (default: 20 = 0.2%)
+- `PLATFORM_FEE_ACCOUNT`: Solana address to receive fees
+
+## 🚀 Deployment
+
+### Vercel (Recommended)
+
+1. Connect your GitHub repository to Vercel
+2. Configure environment variables in Vercel dashboard
+3. Deploy with automatic CI/CD
+
+### Manual Deployment
+
+1. Build the application:
+\`\`\`bash
+pnpm build
+\`\`\`
+
+2. Deploy to your hosting provider of choice
+
+### Database Setup
+
+1. Create a Neon database instance
+2. Run migrations using the provided SQL scripts
+3. Update connection strings in environment variables
+
+## 📱 API Routes
+
+### Public APIs
+- `/api/tokens` - Token list and metadata
+- `/api/price` - Real-time token prices
+- `/api/chart-data` - Historical price data
+
+### Transaction APIs
+- `/api/jupiter-exact-out-swap` - Jupiter swap execution
+- `/api/solana-pay` - Solana Pay request handling
+- `/api/transactions` - Transaction history
+
+## 🔐 Security
+
+### Best Practices
+- All private keys remain client-side
+- Server-side validation for all transactions
+- Rate limiting on API endpoints
+- Input sanitization and validation
+
+### Environment Security
+- Never commit `.env` files
+- Use secure RPC endpoints
+- Rotate API keys regularly
+- Monitor for suspicious activity
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Commit your changes: `git commit -m 'Add amazing feature'`
+4. Push to the branch: `git push origin feature/amazing-feature`
+5. Open a Pull Request
+
+### Development Guidelines
+- Follow TypeScript best practices
+- Use conventional commit messages
+- Add tests for new features
+- Update documentation as needed
 
 ## 📄 License
 
-MIT License. See [LICENSE](./LICENSE) for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🆘 Support
+
+For support and questions:
+- Create an issue on GitHub
+- Join our Discord community
+- Check the documentation wiki
+
+## 🗺 Roadmap
+
+### Phase 1 (Current)
+- ✅ Basic token swaps
+- ✅ Solana Pay integration
+- ✅ Portfolio tracking
+- ✅ Multi-wallet support
+
+### Phase 2 (In Progress)
+- 🔄 Advanced trading features
+- 🔄 Liquidity pool management
+- 🔄 Yield farming integration
+- 🔄 Mobile app development
+
+### Phase 3 (Planned)
+- 📋 NFT marketplace integration
+- 📋 Cross-chain bridge support
+- 📋 Advanced analytics dashboard
+- 📋 Social trading features
+
+## 🙏 Acknowledgments
+
+- [Jupiter](https://jup.ag) for swap aggregation
+- [Solana](https://solana.com) for the blockchain infrastructure
+- [Privy](https://privy.io) for embedded wallet solutions
+- [Helius](https://helius.xyz) for enhanced RPC services
+- [shadcn/ui](https://ui.shadcn.com) for the component library
 
 ---
 
-## 🌐 Live Demo
-
-* SparrowSwap Application: [sparrowswap.com](https://)
-
----
-
-## 💬 Connect
-
-* Official Website: [sparrowprotocol.net](https://sparrowprotocol.net)
-* Twitter: [@SparrowProtocol](https://twitter.com/SparrowProtocol)
-* Discord: [Join our community](https://discord.gg/SparrowProtocol)
+Built with ❤️ by the Sparrow team

@@ -1,75 +1,77 @@
 "use client"
 
 import type React from "react"
-import "./globals.css"
 
-import { useMemo } from "react"
-import { ThemeProvider } from "@/components/theme-provider"
-import { WalletProvider } from "@/components/wallet-provider"
+import { usePathname } from "next/navigation"
 import { Header } from "@/components/ui/header"
 import { Footer } from "@/components/ui/footer"
-import { SwapSettingsProvider } from "@/app/hooks/use-swap-settings"
-import { ToastProvider } from "@/app/hooks/use-toast"
-
-// Solana Wallet Adapter imports
+import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar"
+import { AppSidebar } from "@/components/app-sidebar"
+import { Separator } from "@/components/ui/separator"
 import {
-  ConnectionProvider,
-  WalletProvider as SolanaWalletProvider,
-} from "@solana/wallet-adapter-react"
-import { WalletModalProvider } from "@solana/wallet-adapter-react-ui"
-import {
-  PhantomWalletAdapter,
-  SolflareWalletAdapter,
-} from "@solana/wallet-adapter-wallets"
-import { clusterApiUrl } from "@solana/web3.js"
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb"
+import { useIsMobile } from "@/app/hooks/use-media-query"
+import { useEffect, useState } from "react"
 
-// Styles for wallet modal
-import "@solana/wallet-adapter-react-ui/styles.css"
+export default function ClientLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname()
+  const isMobile = useIsMobile()
+  const [isMounted, setIsMounted] = useState(false)
 
-interface ClientLayoutProps {
-  children: React.ReactNode
-}
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
-export default function ClientLayout({ children }: ClientLayoutProps) {
-  const network = "mainnet-beta"
-  const heliusRpcUrl = process.env.NEXT_PUBLIC_HELIUS_RPC_URL
+  if (!isMounted) {
+    return null // Or a loading spinner
+  }
 
-  // Use Helius RPC if available, else fallback to Solana cluster
-  const endpoint = useMemo(() => {
-    const fallback = clusterApiUrl(network)
-    if (heliusRpcUrl) {
-      console.log("✅ Using Helius RPC endpoint:", heliusRpcUrl)
-      return heliusRpcUrl
-    }
-    console.log("⚠️ Falling back to default Solana RPC:", fallback)
-    return fallback
-  }, [heliusRpcUrl])
+  const getBreadcrumbs = () => {
+    const pathSegments = pathname.split("/").filter((segment) => segment)
+    const breadcrumbs = [{ label: "Home", href: "/" }]
 
-  // Supported wallets
-  const wallets = useMemo(
-    () => [new PhantomWalletAdapter(), new SolflareWalletAdapter()],
-    []
-  )
+    pathSegments.forEach((segment, index) => {
+      const href = "/" + pathSegments.slice(0, index + 1).join("/")
+      const label = segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, " ")
+      breadcrumbs.push({ label, href })
+    })
+
+    return breadcrumbs
+  }
+
+  const breadcrumbs = getBreadcrumbs()
 
   return (
-    <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-      <ConnectionProvider endpoint={endpoint}>
-        <SolanaWalletProvider wallets={wallets} autoConnect>
-          <WalletModalProvider>
-            <WalletProvider>
-              <SwapSettingsProvider>
-                <ToastProvider>
-                  <div className="flex min-h-screen flex-col">
-                    <Header />
-                    <main className="flex-1">{children}</main>
-                    <Footer />
-                  </div>
-                </ToastProvider>
-              </SwapSettingsProvider>
-            </WalletProvider>
-          </WalletModalProvider>
-        </SolanaWalletProvider>
-      </ConnectionProvider>
-    </ThemeProvider>
+    <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset>
+        <Header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+          {isMobile && <SidebarTrigger className="-ml-1" />}
+          {isMobile && <Separator orientation="vertical" className="mr-2 h-4" />}
+          <Breadcrumb>
+            <BreadcrumbList>
+              {breadcrumbs.map((crumb, index) => (
+                <BreadcrumbItem key={crumb.href}>
+                  {index < breadcrumbs.length - 1 ? (
+                    <BreadcrumbLink href={crumb.href}>{crumb.label}</BreadcrumbLink>
+                  ) : (
+                    <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
+                  )}
+                  {index < breadcrumbs.length - 1 && <BreadcrumbSeparator />}
+                </BreadcrumbItem>
+              ))}
+            </BreadcrumbList>
+          </Breadcrumb>
+        </Header>
+        <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">{children}</main>
+        <Footer />
+      </SidebarInset>
+    </SidebarProvider>
   )
 }

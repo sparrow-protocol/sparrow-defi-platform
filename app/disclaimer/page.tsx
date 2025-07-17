@@ -1,48 +1,52 @@
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+
 export default function DisclaimerPage() {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center py-12 md:py-24 lg:py-32 bg-medium-gray dark:bg-black text-black dark:text-white px-4 text-center">
-      <h1 className="text-4xl font-bold mb-4">Disclaimer</h1>
-      <div className="max-w-3xl text-left text-black/70 dark:text-light-gray space-y-4">
-        <p>
-          The information provided by Sparrow Protocol on{" "}
-          <a href="https://sparrowprotocol.com" className="text-gold hover:underline">
-            https://sparrowprotocol.com
-          </a>{" "}
-          (the "Site") is for general informational purposes only. All information on the Site is provided in good
-          faith, however, we make no representation or warranty of any kind, express or implied, regarding the accuracy,
-          adequacy, validity, reliability, availability, or completeness of any information on the Site.
-        </p>
-        <p>
-          UNDER NO CIRCUMSTANCE SHALL WE HAVE ANY LIABILITY TO YOU FOR ANY LOSS OR DAMAGE OF ANY KIND INCURRED AS A
-          RESULT OF THE USE OF THE SITE OR RELIANCE ON ANY INFORMATION PROVIDED ON THE SITE. YOUR USE OF THE SITE AND
-          YOUR RELIANCE ON ANY INFORMATION ON THE SITE IS SOLELY AT YOUR OWN RISK.
-        </p>
-        <p>
-          <strong>External Links Disclaimer:</strong> The Site may contain (or you may be sent through the Site) links
-          to other websites or content belonging to or originating from third parties or links to websites and features
-          in banners or other advertising. Such external links are not investigated, monitored, or checked for accuracy,
-          adequacy, validity, reliability, availability, or completeness by us. WE DO NOT WARRANT, ENDORSE, GUARANTEE,
-          OR ASSUME RESPONSIBILITY FOR THE ACCURACY OR RELIABILITY OF ANY INFORMATION OFFERED BY THIRD-PARTY WEBSITES
-          LINKED THROUGH THE SITE OR ANY WEBSITE OR FEATURE LINKED IN ANY BANNER OR OTHER ADVERTISING. WE WILL NOT BE A
-          PARTY TO OR IN ANY WAY BE RESPONSIBLE FOR MONITORING ANY TRANSACTION BETWEEN YOU AND THIRD-PARTY PROVIDERS OF
-          PRODUCTS OR SERVICES.
-        </p>
-        <p>
-          <strong>Financial Disclaimer:</strong> The Site cannot and does not contain financial advice. The financial
-          information is provided for general informational and educational purposes only and is not a substitute for
-          professional advice. Accordingly, before taking any actions based upon such information, we encourage you to
-          consult with the appropriate professionals. We do not provide any kind of financial advice. THE USE OR
-          RELIANCE OF ANY INFORMATION CONTAINED ON THIS SITE IS SOLELY AT YOUR OWN RISK.
-        </p>
-        <p>
-          <strong>Cryptocurrency Risk Disclaimer:</strong> Investing in cryptocurrencies carries a high level of risk,
-          and may not be suitable for all investors. Before deciding to invest in cryptocurrency, you should carefully
-          consider your investment objectives, level of experience, and risk appetite. The possibility exists that you
-          could sustain a loss of some or all of your initial investment and therefore you should not invest money that
-          you cannot afford to lose. You should be aware of all the risks associated with cryptocurrency trading, and
-          seek advice from an independent financial advisor if you have any doubts.
-        </p>
-      </div>
+    <div className="container mx-auto py-12 px-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-3xl font-bold text-center text-gold">Disclaimer</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6 text-lg leading-relaxed">
+          <p>
+            Sparrow Protocol is a decentralized finance (DeFi) platform. By using this platform, you acknowledge and
+            agree to the following:
+          </p>
+          <ul className="list-disc pl-6 space-y-2">
+            <li>
+              **No Financial Advice:** The information provided on this platform is for general informational purposes
+              only and does not constitute financial, investment, or trading advice. You should not make any financial
+              decisions based solely on the information presented here.
+            </li>
+            <li>
+              **Risks of Cryptocurrency:** Trading cryptocurrencies involves significant risk and can result in the loss
+              of your capital. The value of cryptocurrencies can be highly volatile and unpredictable. You should
+              carefully consider whether trading or holding cryptocurrencies is suitable for you in light of your
+              financial condition.
+            </li>
+            <li>
+              **Smart Contract Risks:** This platform relies on smart contracts. Smart contracts are experimental and
+              may contain vulnerabilities or bugs that could lead to loss of funds. While we strive for security, we
+              cannot guarantee the absence of such vulnerabilities.
+            </li>
+            <li>
+              **No Guarantees:** Sparrow Protocol does not guarantee the accuracy, completeness, or reliability of any
+              information on the platform, nor does it guarantee the performance or success of any transactions.
+            </li>
+            <li>
+              **Your Responsibility:** You are solely responsible for your decisions and actions when using this
+              platform. You should conduct your own research and consult with a qualified financial professional before
+              making any investment decisions.
+            </li>
+            <li>
+              **Jurisdictional Limitations:** The availability of Sparrow Protocol may be subject to jurisdictional
+              restrictions. You are responsible for ensuring that your use of the platform complies with all applicable
+              laws and regulations in your jurisdiction.
+            </li>
+          </ul>
+          <p>By proceeding, you confirm that you understand and accept these risks and disclaimers.</p>
+        </CardContent>
+      </Card>
     </div>
   )
 }

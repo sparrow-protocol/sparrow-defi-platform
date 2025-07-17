@@ -1,11 +1,20 @@
-// app/lib/defi-api.ts
 import { JUPITER_API_BASE_URL, RAYDIUM_API_BASE_URL } from "@/app/lib/constants"
-import type { JupiterQuoteResponse, RaydiumPoolInfo, JupiterPriceResponse } from "@/app/types/api" // Added JupiterPriceResponse
+import type { JupiterRoute, JupiterPriceResponse } from "@/app/types/jupiter"
+import type { RaydiumPoolInfo } from "@/app/types/pools/raydium"
 import { Connection, VersionedTransaction } from "@solana/web3.js"
 
 // Use Helius RPC if available, otherwise default Solana RPC
 const HELIUS_RPC_URL = process.env.NEXT_PUBLIC_HELIUS_RPC_URL || "https://api.mainnet-beta.solana.com"
 const connection = new Connection(HELIUS_RPC_URL, "confirmed")
+
+async function fetchJson(url: string, options?: RequestInit): Promise<any> {
+  const response = await fetch(url, options)
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ message: response.statusText }))
+    throw new Error(`API request failed: ${errorData.message || response.statusText}`)
+  }
+  return response.json()
+}
 
 /**
  * Fetches a price quote from Jupiter Aggregator.
@@ -14,7 +23,7 @@ const connection = new Connection(HELIUS_RPC_URL, "confirmed")
  * @param amount The amount of the input token (in its smallest unit, e.g., lamports for SOL).
  * @param slippageBps Slippage tolerance in basis points (e.g., 50 for 0.5%).
  * @param platformFeeBps Optional: Platform fee in basis points (e.g., 20 for 0.2%).
- * @returns A JupiterQuoteResponse object or null if an error occurs.
+ * @returns A JupiterRoute object or null if an error occurs.
  */
 export async function getJupiterQuote(
   inputMint: string,
@@ -22,20 +31,14 @@ export async function getJupiterQuote(
   amount: string, // amount in lamports (smallest unit)
   slippageBps = 50, // 0.5% slippage
   platformFeeBps = 0, // New parameter
-): Promise<JupiterQuoteResponse | null> {
+): Promise<JupiterRoute | null> {
   try {
     let url = `${JUPITER_API_BASE_URL}/quote?inputMint=${inputMint}&outputMint=${outputMint}&amount=${amount}&slippageBps=${slippageBps}`
     if (platformFeeBps > 0) {
       url += `&platformFeeBps=${platformFeeBps}`
     }
-    const response = await fetch(url)
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error(`Error fetching Jupiter quote: ${response.statusText}. Details: ${errorText}`)
-      throw new Error(`Error fetching Jupiter quote: ${response.statusText}`)
-    }
-    const data = await response.json()
-    return data as JupiterQuoteResponse
+    const data = await fetchJson(url)
+    return data as JupiterRoute
   } catch (error) {
     console.error("Failed to get Jupiter quote:", error)
     return null
@@ -50,7 +53,7 @@ export async function getJupiterQuote(
  * @returns A serialized transaction object or null if an error occurs.
  */
 export async function getJupiterSwapTransaction(
-  quoteResponse: JupiterQuoteResponse,
+  quoteResponse: JupiterRoute,
   userPublicKey: string,
   feeAccount: string | null = null, // New parameter
 ): Promise<any | null> {
@@ -65,19 +68,13 @@ export async function getJupiterSwapTransaction(
       body.feeAccount = feeAccount
     }
 
-    const response = await fetch(url, {
+    const data = await fetchJson(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),
     })
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error(`Error fetching swap transaction: ${response.statusText}. Details: ${errorText}`)
-      throw new Error(`Error fetching swap transaction: ${response.statusText}`)
-    }
-    const data = await response.json()
     return data // This would typically be a serialized transaction
   } catch (error) {
     console.error("Failed to get Jupiter swap transaction:", error)
@@ -91,14 +88,14 @@ export async function getJupiterSwapTransaction(
  * @param outputMint The mint address of the output token (merchant receives).
  * @param outputAmount The exact amount of the output token (in its smallest unit).
  * @param slippageBps Slippage tolerance in basis points.
- * @returns A JupiterQuoteResponse object or null.
+ * @returns A JupiterRoute object or null.
  */
 export async function getJupiterExactOutQuote(
   inputMint: string,
   outputMint: string,
   outputAmount: string, // exact amount in smallest unit
   slippageBps = 50, // 0.5% slippage
-): Promise<JupiterQuoteResponse | null> {
+): Promise<JupiterRoute | null> {
   try {
     const response = await fetch("/api/jupiter-exact-out-swap", {
       method: "POST",
@@ -117,7 +114,7 @@ export async function getJupiterExactOutQuote(
       throw new Error(errorData.error || "Failed to get ExactOut quote.")
     }
     const data = await response.json()
-    return data.quoteResponse as JupiterQuoteResponse // The API route returns the full quote response
+    return data.quoteResponse as JupiterRoute // The API route returns the full quote response
   } catch (error) {
     console.error("Failed to get Jupiter ExactOut quote:", error)
     return null
@@ -126,7 +123,10 @@ export async function getJupiterExactOutQuote(
 
 /**
  * Fetches a serialized ExactOut swap transaction from Jupiter Aggregator via the custom API route.
- * @param quoteResponse The quote response obtained from getJupiterExactOutQuote.
+ * @param inputMint The mint address of the input token.
+ * @param outputMint The mint address of the output token.
+ * @param outputAmount The exact amount of the output token.
+ * @param slippageBps Slippage tolerance in basis points.
  * @param userPublicKey The public key of the customer initiating the swap.
  * @param merchantRecipientAddress The public key of the merchant receiving the payment.
  * @returns A serialized transaction object or null.

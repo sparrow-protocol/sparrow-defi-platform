@@ -1,97 +1,168 @@
-// app/hooks/use-solana-pay.ts
 "use client"
 
-import { useState, useCallback } from "react"
-import type { SolanaPayTransactionRequest } from "@/app/types/solana-pay"
-import { useToast } from "@/app/hooks/use-toast"
-import type { Transaction } from "@/app/types/common"
+import { useState, useEffect, useCallback } from "react"
+import { useConnection } from "@solana/wallet-adapter-react"
+import { PublicKey } from "@solana/web3.js"
+import { useToast } from "@/hooks/use-toast"
+import { createPaymentRequest, updatePaymentStatus } from "@/server/actions/payments"
+import type { PaymentRequest, PaymentStatus } from "@/app/types/payments"
+import { encodeURL, findReference, validateTransfer } from "@solana/pay"
+import BigNumber from "bignumber.js"
+import type { Connection } from "@solana/web3.js"
 
-interface SolanaPayResult {
-  solanaPayUrl: string | null
-  transactionBase64: string | null
-  isLoading: boolean
-  error: string | null
-  generateSolanaPayUrl: (
-    request: Omit<SolanaPayTransactionRequest, "recipient"> & { recipient: string },
-  ) => Promise<void>
-  savePaymentTransaction: (
-    transaction: Omit<Transaction, "id" | "createdAt" | "signature" | "status"> & {
-      status?: "pending" | "completed" | "failed"
-    },
-  ) => Promise<void>
-}
+export function useSolanaPay() {
+  const { connection } = useConnection()
+  const { toast } = useToast()
 
-export function useSolanaPay(recipientAddress: string): SolanaPayResult {
-  const [solanaPayUrl, setSolanaPayUrl] = useState<string | null>(null)
-  const [transactionBase64, setTransactionBase64] = useState<string | null>(null)
+  const [qrUrl, setQrUrl] = useState<string | null>(null)
+  const [paymentId, setPaymentId] = useState<string | null>(null)
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const { showToast } = useToast()
 
-  const generateSolanaPayUrl = useCallback(
-    async (request: Omit<SolanaPayTransactionRequest, "recipient"> & { recipient: string }) => {
+  const generatePaymentQr = useCallback(
+    async (recipient: string, amount: number, splToken?: string, label?: string, message?: string) => {
       setIsLoading(true)
       setError(null)
-      setSolanaPayUrl(null)
-      setTransactionBase64(null)
+      setQrUrl(null)
+      setPaymentId(null)
+      setPaymentStatus(null)
 
       try {
-        const response = await fetch("/api/solana-pay", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            ...request,
-            recipient: recipientAddress, // Use the hook's recipient
-          }),
-        })
-
-        if (!response.ok) {
-          const errorData = await response.json()
-          throw new Error(errorData.error || "Failed to generate Solana Pay URL")
+        const newPaymentRequest: Omit<PaymentRequest, "id"> = {
+          amount,
+          currency: splToken ? "SPL" : "SOL",
+          recipient,
+          splToken,
+          label,
+          message,
+          status: "pending",
         }
 
-        const data = await response.json()
-        setSolanaPayUrl(data.solanaPayUrl)
-        setTransactionBase64(data.transaction)
-        showToast({ message: "Solana Pay QR generated!", type: "success" })
+        const { success, payment, error: createError } = await createPaymentRequest(newPaymentRequest)
+
+        if (!success || !payment) {
+          throw new Error(createError || "Failed to create payment request.")
+        }
+
+        setPaymentId(payment.id)
+
+        const reference = new PublicKey(payment.id)
+        const url = encodeURL({
+          recipient: new PublicKey(recipient),
+          amount: new BigNumber(amount),
+          splToken: splToken ? new PublicKey(splToken) : undefined,
+          reference,
+          label: label || "Sparrow Payment",
+          message: message || `Payment for ${amount} ${splToken ? "tokens" : "SOL"}`,
+        })
+
+        setQrUrl(url.toString())
+        toast({
+          title: "QR Code Generated",
+          description: "Scan the QR code to complete the payment.",
+        })
+        return payment.id
       } catch (err: any) {
-        console.error("Error generating Solana Pay URL:", err)
-        setError(err.message || "An unknown error occurred.")
-        showToast({ message: err.message || "Failed to generate Solana Pay QR.", type: "error" })
+        console.error("Error generating Solana Pay QR:", err)
+        setError(err.message || "Failed to generate payment QR code.")
+        toast({
+          title: "Error",
+          description: err.message || "Failed to generate payment QR code.",
+          variant: "destructive",
+        })
+        return null
       } finally {
         setIsLoading(false)
       }
     },
-    [recipientAddress, showToast],
+    [toast],
   )
 
-  const savePaymentTransaction = useCallback(
-    async (
-      transaction: Omit<Transaction, "id" | "createdAt" | "signature"> & {
-        status?: "pending" | "completed" | "failed"
-      },
-    ) => {
-      try {
-        const response = await fetch("/api/transactions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(transaction),
-        })
+  const monitorPaymentStatus = useCallback(
+    async (id: string, connection: Connection) => {
+      if (!id) return
 
-        if (!response.ok) {
-          const errorData = await response.json()
-          throw new Error(errorData.error || "Failed to save payment transaction.")
+      const reference = new PublicKey(id)
+      let signature: string | null = null
+      let intervalId: NodeJS.Timeout | null = null
+
+      const checkStatus = async () => {
+        try {
+          const found = await findReference(connection, reference, { finality: "confirmed" })
+          signature = found.signature
+
+          // Validate the transaction
+          await validateTransfer(connection, signature, { reference })
+
+          // Update status in DB
+          await updatePaymentStatus(id, "completed", signature)
+          setPaymentStatus({
+            id,
+            status: "completed",
+            signature,
+            createdAt: Date.now(), // Placeholder, ideally from DB
+            updatedAt: Date.now(),
+          })
+          toast({
+            title: "Payment Confirmed!",
+            description: `Transaction: ${signature.slice(0, 8)}...`,
+            variant: "success",
+          })
+          if (intervalId) clearInterval(intervalId)
+        } catch (err: any) {
+          if (err.name === "FindReferenceError") {
+            // Transaction not found yet, keep polling
+            console.log("Transaction not found yet, polling...")
+          } else {
+            console.error("Error validating payment:", err)
+            setError(err.message || "Payment validation failed.")
+            updatePaymentStatus(id, "failed")
+            setPaymentStatus({
+              id,
+              status: "failed",
+              signature: signature || undefined,
+              createdAt: Date.now(),
+              updatedAt: Date.now(),
+            })
+            toast({
+              title: "Payment Failed",
+              description: err.message || "Payment could not be confirmed.",
+              variant: "destructive",
+            })
+            if (intervalId) clearInterval(intervalId)
+          }
         }
-        console.log("Payment transaction saved:", await response.json())
-      } catch (err: any) {
-        console.error("Error saving payment transaction:", err)
-        showToast({ message: err.message || "Failed to record payment transaction.", type: "error" })
+      }
+
+      // Initial check
+      await checkStatus()
+
+      // Poll every 3 seconds
+      intervalId = setInterval(checkStatus, 3000)
+
+      return () => {
+        if (intervalId) clearInterval(intervalId)
       }
     },
-    [showToast],
+    [toast],
   )
 
-  return { solanaPayUrl, transactionBase64, isLoading, error, generateSolanaPayUrl, savePaymentTransaction }
+  useEffect(() => {
+    if (paymentId && connection) {
+      const cleanup = monitorPaymentStatus(paymentId, connection)
+      return () => {
+        cleanup?.()
+      }
+    }
+  }, [paymentId, connection, monitorPaymentStatus])
+
+  return {
+    qrUrl,
+    paymentId,
+    paymentStatus,
+    isLoading,
+    error,
+    generatePaymentQr,
+  }
 }

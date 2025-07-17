@@ -1,80 +1,111 @@
 "use client"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { CheckCircle, XCircle, Loader2, ExternalLink } from "lucide-react"
+import { Loader2, CheckCircle2, XCircle, ExternalLink } from "lucide-react"
+import { truncatePublicKey } from "@/app/lib/format"
+import Link from "next/link"
+import { usePayment } from "@/app/hooks/use-payment"
+import { useEffect } from "react"
 
 interface TransactionStatusModalProps {
   isOpen: boolean
   onClose: () => void
-  status: "pending" | "confirmed" | "failed"
-  signature: string | null
-  message?: string
+  paymentRequestId: string | null
 }
 
-export function TransactionStatusModal({ isOpen, onClose, status, signature, message }: TransactionStatusModalProps) {
-  const getStatusIcon = () => {
-    switch (status) {
+export function TransactionStatusModal({ isOpen, onClose, paymentRequestId }: TransactionStatusModalProps) {
+  const { status, isLoading, error, fetchPaymentStatus } = usePayment()
+
+  useEffect(() => {
+    if (isOpen && paymentRequestId) {
+      const interval = setInterval(() => {
+        fetchPaymentStatus(paymentRequestId)
+      }, 3000) // Poll every 3 seconds
+
+      return () => clearInterval(interval)
+    }
+  }, [isOpen, paymentRequestId, fetchPaymentStatus])
+
+  const getTitle = () => {
+    if (isLoading) return "Processing Payment..."
+    if (error) return "Payment Error"
+    if (!status) return "Payment Status"
+
+    switch (status.status) {
       case "pending":
-        return <Loader2 className="h-12 w-12 animate-spin text-gold" />
-      case "confirmed":
-        return <CheckCircle className="h-12 w-12 text-positive-green" />
+        return "Payment Pending"
+      case "processing":
+        return "Payment Processing"
+      case "completed":
+        return "Payment Successful!"
       case "failed":
-        return <XCircle className="h-12 w-12 text-negative-red" />
+        return "Payment Failed"
+      case "expired":
+        return "Payment Expired"
       default:
-        return null
+        return "Payment Status"
     }
   }
 
-  const getStatusTitle = () => {
-    switch (status) {
+  const getDescription = () => {
+    if (isLoading) return "Your transaction is being processed on the Solana network. Please wait."
+    if (error) return error
+    if (!status) return "Fetching payment status..."
+
+    switch (status.status) {
       case "pending":
-        return "Transaction Pending..."
-      case "confirmed":
-        return "Transaction Confirmed!"
+        return "Waiting for the transaction to be confirmed on the blockchain."
+      case "processing":
+        return "The transaction has been sent and is awaiting final confirmation."
+      case "completed":
+        return "Your payment has been successfully completed and confirmed!"
       case "failed":
-        return "Transaction Failed"
+        return "The payment transaction failed. Please check the details and try again."
+      case "expired":
+        return "The payment request has expired. Please generate a new one."
       default:
-        return "Transaction Status"
+        return "Checking transaction status..."
     }
   }
 
-  const getStatusDescription = () => {
-    if (message) return message
-    switch (status) {
-      case "pending":
-        return "Your transaction is being processed on the Solana network."
-      case "confirmed":
-        return "Your transaction has been successfully confirmed."
-      case "failed":
-        return "There was an error processing your transaction. Please try again."
-      default:
-        return ""
+  const getIcon = () => {
+    if (isLoading || status?.status === "pending" || status?.status === "processing") {
+      return <Loader2 className="h-16 w-16 animate-spin text-primary" />
     }
+    if (status?.status === "completed") {
+      return <CheckCircle2 className="h-16 w-16 text-green-500" />
+    }
+    if (status?.status === "failed" || status?.status === "expired" || error) {
+      return <XCircle className="h-16 w-16 text-red-500" />
+    }
+    return null
   }
 
-  const solanaExplorerUrl = signature ? `https://solscan.io/tx/${signature}` : "#" // Or use your preferred explorer
+  const explorerUrl = status?.signature ? `https://solscan.io/tx/${status.signature}` : null
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px] bg-white dark:bg-dark-gray text-black dark:text-white border-light-gray dark:border-medium-gray rounded-md">
-        <DialogHeader className="flex flex-col items-center text-center">
-          <div className="mb-4">{getStatusIcon()}</div>
-          <DialogTitle className="text-2xl font-bold text-gold">{getStatusTitle()}</DialogTitle>
-          <DialogDescription className="text-black/70 dark:text-light-gray">{getStatusDescription()}</DialogDescription>
+      <DialogContent className="sm:max-w-[425px] text-center">
+        <DialogHeader>
+          <div className="flex justify-center mb-4">{getIcon()}</div>
+          <DialogTitle>{getTitle()}</DialogTitle>
+          <DialogDescription>{getDescription()}</DialogDescription>
         </DialogHeader>
-        <div className="flex flex-col items-center gap-4 py-4">
-          {signature && (
-            <a
-              href={solanaExplorerUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center space-x-2 text-gold hover:underline"
-            >
-              <span>View on Explorer</span>
-              <ExternalLink className="h-4 w-4" />
-            </a>
+        <div className="grid gap-4 py-4">
+          {status?.signature && (
+            <div className="text-sm text-muted-foreground">
+              Transaction Signature: <span className="font-mono">{truncatePublicKey(status.signature, 8, 8)}</span>
+            </div>
           )}
-          <Button variant="gold-filled" onClick={onClose} className="mt-2">
+          {explorerUrl && (
+            <Button asChild variant="outline" className="w-full bg-transparent">
+              <Link href={explorerUrl} target="_blank" rel="noopener noreferrer">
+                View on Solscan <ExternalLink className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          )}
+          <Button onClick={onClose} className="w-full">
             Close
           </Button>
         </div>

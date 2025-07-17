@@ -1,59 +1,73 @@
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+
 export default function PrivacyPolicyPage() {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center py-12 md:py-24 lg:py-32 bg-medium-gray dark:bg-black text-black dark:text-white px-4 text-center">
-      <h1 className="text-4xl font-bold mb-4">Privacy Policy</h1>
-      <div className="max-w-3xl text-left text-black/70 dark:text-light-gray space-y-4">
-        <p>
-          This Privacy Policy describes how Sparrow Protocol ("we," "us," or "our") collects, uses, and discloses your
-          information when you use our decentralized exchange aggregator platform (the "Service").
-        </p>
-        <p>
-          We are committed to protecting your privacy. We do not collect personally identifiable information unless
-          voluntarily provided. Our Service operates on a decentralized network, and your interactions are primarily
-          with the blockchain.
-        </p>
-        <p>
-          <strong>Information We Collect:</strong>
-          <ul>
+    <div className="container mx-auto py-12 px-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-3xl font-bold text-center text-gold">Privacy Policy</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6 text-lg leading-relaxed">
+          <p>
+            At Sparrow Protocol, we are committed to protecting your privacy. This Privacy Policy explains how we
+            collect, use, and disclose information when you use our decentralized finance (DeFi) platform.
+          </p>
+          <h3 className="text-2xl font-semibold text-foreground">1. Information We Collect</h3>
+          <ul className="list-disc pl-6 space-y-2">
             <li>
-              <strong>Blockchain Data:</strong> We process public blockchain data, such as wallet addresses, transaction
-              IDs, and token amounts, which are inherently public on the Solana blockchain.
+              **Blockchain Data:** As a decentralized platform, all transactions and interactions occur on the Solana
+              blockchain. This data is public and immutable. We do not control or store this public blockchain data.
             </li>
             <li>
-              <strong>Usage Data:</strong> We may collect anonymous usage data to improve our Service, such as
-              interaction patterns and feature usage. This data is not linked to your personal identity.
+              **Wallet Addresses:** We may collect your public wallet address to facilitate transactions and display
+              your portfolio. We do not collect your private keys.
+            </li>
+            <li>
+              **Usage Data:** We may collect anonymous usage data, such as IP addresses, browser types, operating
+              systems, and interaction patterns, to improve our platform's functionality and user experience. This data
+              is aggregated and does not identify individual users.
+            </li>
+            <li>
+              **Optional Information:** If you choose to contact us for support or provide feedback, you may voluntarily
+              provide personal information such as your email address.
             </li>
           </ul>
-        </p>
-        <p>
-          <strong>How We Use Your Information:</strong>
-          <ul>
-            <li>To provide and maintain our Service.</li>
-            <li>To improve and personalize your experience.</li>
-            <li>To monitor and analyze usage and trends.</li>
-            <li>To detect, prevent, and address technical issues.</li>
+          <h3 className="text-2xl font-semibold text-foreground mt-6">2. How We Use Your Information</h3>
+          <ul className="list-disc pl-6 space-y-2">
+            <li>To facilitate and process your transactions on the Solana blockchain.</li>
+            <li>To display your token balances and transaction history.</li>
+            <li>To improve and optimize the functionality and performance of our platform.</li>
+            <li>To respond to your inquiries and provide customer support.</li>
+            <li>To comply with legal obligations.</li>
           </ul>
-        </p>
-        <p>
-          <strong>Data Sharing and Disclosure:</strong>
-          We do not sell, trade, or otherwise transfer your personally identifiable information to outside parties.
-          Public blockchain data is, by its nature, publicly accessible.
-        </p>
-        <p>
-          <strong>Security:</strong>
-          We implement reasonable security measures to protect your information. However, no method of transmission over
-          the Internet or electronic storage is 100% secure.
-        </p>
-        <p>
-          <strong>Changes to This Privacy Policy:</strong>
-          We may update our Privacy Policy from time to time. We will notify you of any changes by posting the new
-          Privacy Policy on this page.
-        </p>
-        <p>
-          <strong>Contact Us:</strong>
-          If you have any questions about this Privacy Policy, please contact us through our official channels.
-        </p>
-      </div>
+          <h3 className="text-2xl font-semibold text-foreground mt-6">3. Information Sharing and Disclosure</h3>
+          <ul className="list-disc pl-6 space-y-2">
+            <li>
+              **Blockchain Transparency:** All on-chain transactions are public and visible on the Solana blockchain.
+            </li>
+            <li>
+              **Service Providers:** We may share aggregated, non-personally identifiable usage data with third-party
+              service providers to assist us in platform analytics and improvement.
+            </li>
+            <li>
+              **Legal Compliance:** We may disclose your information if required to do so by law or in response to valid
+              requests by public authorities (e.g., a court order or government agency).
+            </li>
+          </ul>
+          <h3 className="text-2xl font-semibold text-foreground mt-6">4. Data Security</h3>
+          <p>
+            We implement reasonable security measures to protect the information we collect. However, no method of
+            transmission over the internet or electronic storage is 100% secure. We cannot guarantee absolute security.
+          </p>
+          <h3 className="text-2xl font-semibold text-foreground mt-6">5. Changes to This Privacy Policy</h3>
+          <p>
+            We may update our Privacy Policy from time to time. We will notify you of any changes by posting the new
+            Privacy Policy on this page. You are advised to review this Privacy Policy periodically for any changes.
+          </p>
+          <h3 className="text-2xl font-semibold text-foreground mt-6">6. Contact Us</h3>
+          <p>If you have any questions about this Privacy Policy, please contact us through our support channels.</p>
+        </CardContent>
+      </Card>
     </div>
   )
 }

@@ -1,15 +1,34 @@
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+
 export default function AboutPage() {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center py-12 md:py-24 lg:py-32 bg-medium-gray dark:bg-black text-black dark:text-white px-4 text-center">
-      <h1 className="text-4xl font-bold mb-4">About Sparrow Protocol</h1>
-      <p className="max-w-2xl text-lg text-black/70 dark:text-light-gray">
-        Sparrow Protocol is a decentralized exchange aggregator built on Solana, designed to provide seamless, secure,
-        and efficient token swaps. Our mission is to empower users with the best trading experience by aggregating
-        liquidity from multiple DEXes and offering advanced features.
-      </p>
-      <p className="max-w-2xl text-lg text-black/70 dark:text-light-gray mt-4">
-        We are committed to transparency, security, and innovation in the DeFi space.
-      </p>
+    <div className="container mx-auto py-12 px-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-3xl font-bold text-center text-gold">About Sparrow Protocol</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6 text-lg leading-relaxed">
+          <p>
+            Sparrow Protocol is a cutting-edge decentralized finance (DeFi) platform built on the Solana blockchain. Our
+            mission is to provide users with a seamless, secure, and efficient experience for token swaps, advanced
+            trading, and integrated payment solutions.
+          </p>
+          <p>
+            Leveraging Solana's high throughput and low transaction costs, Sparrow Protocol aims to deliver a superior
+            DeFi experience, enabling lightning-fast transactions and robust liquidity for a wide range of digital
+            assets.
+          </p>
+          <p>
+            We believe in the power of decentralization and are committed to building a platform that is transparent,
+            community-driven, and accessible to everyone. Our team is dedicated to continuous innovation, bringing new
+            features and improvements to meet the evolving needs of the DeFi ecosystem.
+          </p>
+          <p>
+            Join us on our journey to redefine decentralized finance and empower users with the tools they need to
+            navigate the digital asset landscape with confidence.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   )
 }

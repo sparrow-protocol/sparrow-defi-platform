@@ -1,10 +1,20 @@
 "use client"
 
+import type React from "react"
+
 import { createContext, useContext, useState } from "react"
 
+interface SwapSettings {
+  slippage: number
+  transactionSpeed: "auto" | "fast" | "turbo"
+  mevProtection: boolean
+  customFee: number
+  platformFeeBps: number
+}
+
 interface SwapSettingsContextType {
-  slippageBps: number
-  setSlippageBps: (bps: number) => void
+  settings: SwapSettings
+  updateSettings: (updates: Partial<SwapSettings>) => void
 }
 
 // Create context
@@ -16,13 +26,19 @@ export const SwapSettingsProvider = ({
 }: {
   children: React.ReactNode
 }) => {
-  const [slippageBps, setSlippageBps] = useState<number>(50) // Default to 0.5%
+  const [settings, setSettings] = useState<SwapSettings>({
+    slippage: 0.5, // 0.5%
+    transactionSpeed: "auto",
+    mevProtection: true,
+    customFee: 0,
+    platformFeeBps: 20, // 0.2% platform fee
+  })
 
-  return (
-    <SwapSettingsContext.Provider value={{ slippageBps, setSlippageBps }}>
-      {children}
-    </SwapSettingsContext.Provider>
-  )
+  const updateSettings = (updates: Partial<SwapSettings>) => {
+    setSettings((prev) => ({ ...prev, ...updates }))
+  }
+
+  return <SwapSettingsContext.Provider value={{ settings, updateSettings }}>{children}</SwapSettingsContext.Provider>
 }
 
 // Custom hook to consume the context

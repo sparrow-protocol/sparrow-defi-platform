@@ -1,138 +1,155 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import type { Token } from "@/app/types/tokens"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
+import { Line, LineChart, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts"
+import { CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
+import { CHART_TIMEFRAMES, SOL_MINT, USDC_MINT, UI_CONFIG } from "@/app/lib/constants"
+import { getChartData } from "@/server/actions/chart"
+import type { ChartDataPoint } from "@/app/types/chart"
+import { formatCurrency, formatDate } from "@/app/lib/format"
 import { Loader2 } from "lucide-react"
-import type { ChartDataPoint } from "@/app/types/charts"
-import { format } from "date-fns"
 
-interface TokenChartProps {
-  sellingToken: Token | null
-  buyingToken: Token | null
-}
+type TimeframeKey = keyof typeof CHART_TIMEFRAMES
 
-export function TokenChart({ sellingToken, buyingToken }: TokenChartProps) {
+export function TokenChart() {
   const [chartData, setChartData] = useState<ChartDataPoint[]>([])
-  const [isLoading, setIsLoading] = useState(false)
+  const [timeframe, setTimeframe] = useState<TimeframeKey>("1d")
+  const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [selectedTimeframe, setSelectedTimeframe] = useState<"24h" | "7d" | "30d">("24h")
-
-  const title =
-    sellingToken && buyingToken ? `${sellingToken.symbol} / ${buyingToken.symbol} Price Chart` : "Token Price Chart"
 
   const fetchChartData = useCallback(async () => {
-    if (!sellingToken) {
-      setChartData([])
-      setError("Please select a token to view its chart.")
-      return
-    }
-
     setIsLoading(true)
     setError(null)
     try {
-      // Fetch data for the selling token (as a primary example)
-      // In a real scenario, you might fetch a pair's price or both tokens' prices against a common base.
-      const response = await fetch(`/api/chart-data?mint=${sellingToken.mint}&timeframe=${selectedTimeframe}`)
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to fetch chart data")
-      }
-      const data: ChartDataPoint[] = await response.json()
+      const data = await getChartData(SOL_MINT, USDC_MINT, timeframe)
       setChartData(data)
     } catch (err: any) {
       console.error("Error fetching chart data:", err)
       setError(err.message || "Failed to load chart data.")
-      setChartData([])
     } finally {
       setIsLoading(false)
     }
-  }, [sellingToken, selectedTimeframe])
+  }, [timeframe])
 
   useEffect(() => {
     fetchChartData()
   }, [fetchChartData])
 
+  // Auto-refresh chart data
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!isLoading && !error) {
+        fetchChartData()
+      }
+    }, UI_CONFIG.CHART_UPDATE_INTERVAL)
+
+    return () => clearInterval(interval)
+  }, [isLoading, error, fetchChartData])
+
+  const formatXAxis = (tickItem: number) => {
+    const date = new Date(tickItem * 1000) // Convert seconds to milliseconds
+    switch (timeframe) {
+      case "1m":
+      case "5m":
+      case "15m":
+      case "1h":
+        return formatDate(date.getTime(), "time")
+      case "4h":
+      case "1d":
+        return date.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+      case "1w":
+        return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" })
+      default:
+        return ""
+    }
+  }
+
+  const formatYAxis = (tickItem: number) => formatCurrency(tickItem, "USD", 4)
+
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="text-gold">{title}</CardTitle>
-        <div className="flex space-x-2 mt-2">
+    <CardContent>
+      <div className="flex justify-end gap-2 mb-4">
+        {Object.entries(CHART_TIMEFRAMES).map(([key, value]) => (
           <Button
-            variant={selectedTimeframe === "24h" ? "gold-filled" : "ghost"}
+            key={key}
+            variant={timeframe === key ? "secondary" : "ghost"}
             size="sm"
-            onClick={() => setSelectedTimeframe("24h")}
-            className="text-xs"
+            onClick={() => setTimeframe(key as TimeframeKey)}
           >
-            24h
+            {value.label}
           </Button>
-          <Button
-            variant={selectedTimeframe === "7d" ? "gold-filled" : "ghost"}
-            size="sm"
-            onClick={() => setSelectedTimeframe("7d")}
-            className="text-xs"
+        ))}
+      </div>
+      <div className="h-[400px] w-full">
+        {isLoading ? (
+          <div className="flex items-center justify-center h-full">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <span className="ml-2 text-muted-foreground">Loading chart data...</span>
+          </div>
+        ) : error ? (
+          <div className="flex items-center justify-center h-full text-red-500">
+            <p>{error}</p>
+          </div>
+        ) : chartData.length === 0 ? (
+          <div className="flex items-center justify-center h-full text-muted-foreground">
+            No chart data available for this timeframe.
+          </div>
+        ) : (
+          <ChartContainer
+            config={{
+              price: {
+                label: "Price",
+                color: "hsl(var(--primary))",
+              },
+            }}
+            className="h-full w-full"
           >
-            7d
-          </Button>
-          <Button
-            variant={selectedTimeframe === "30d" ? "gold-filled" : "ghost"}
-            size="sm"
-            onClick={() => setSelectedTimeframe("30d")}
-            className="text-xs"
-          >
-            30d
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="h-[300px] w-full">
-          {isLoading ? (
-            <div className="flex h-full items-center justify-center">
-              <Loader2 className="h-12 w-12 animate-spin text-gold" />
-            </div>
-          ) : error ? (
-            <div className="flex h-full items-center justify-center text-negative-red text-center">Error: {error}</div>
-          ) : chartData.length === 0 ? (
-            <div className="flex h-full items-center justify-center text-black/70 dark:text-light-gray">
-              No chart data available for the selected token or timeframe.
-            </div>
-          ) : (
             <ResponsiveContainer width="100%" height="100%">
               <LineChart
                 data={chartData}
                 margin={{
-                  top: 5,
+                  top: 10,
                   right: 30,
-                  left: 20,
-                  bottom: 5,
+                  left: 0,
+                  bottom: 0,
                 }}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
                 <XAxis
                   dataKey="time"
-                  tickFormatter={(unixTime) => format(new Date(unixTime), "MMM dd")}
-                  stroke="hsl(var(--foreground))"
+                  tickFormatter={formatXAxis}
+                  minTickGap={50}
+                  axisLine={false}
+                  tickLine={false}
+                  className="text-xs text-muted-foreground"
                 />
-                <YAxis stroke="hsl(var(--foreground))" />
-                <Tooltip
-                  labelFormatter={(label) => format(new Date(label), "MMM dd, HH:mm")}
-                  formatter={(value: number) => [`$${value.toFixed(6)}`, "Price"]}
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--card))",
-                    borderColor: "hsl(var(--border))",
-                    color: "hsl(var(--foreground))",
-                  }}
-                  itemStyle={{ color: "hsl(var(--foreground))" }}
+                <YAxis
+                  domain={["auto", "auto"]}
+                  tickFormatter={formatYAxis}
+                  axisLine={false}
+                  tickLine={false}
+                  width={80}
+                  className="text-xs text-muted-foreground"
                 />
-                <Line type="monotone" dataKey="value" stroke="hsl(var(--gold))" activeDot={{ r: 8 }} />
+                <ChartTooltip
+                  cursor={false}
+                  content={<ChartTooltipContent formatter={(value) => formatCurrency(value, "USD", 4)} />}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="value"
+                  stroke="var(--color-price)"
+                  strokeWidth={2}
+                  dot={false}
+                  name="Price"
+                />
               </LineChart>
             </ResponsiveContainer>
-          )}
-        </div>
-        {/* Removed the "Note: Chart data is simulated" message */}
-      </CardContent>
-    </Card>
+          </ChartContainer>
+        )}
+      </div>
+    </CardContent>
   )
 }

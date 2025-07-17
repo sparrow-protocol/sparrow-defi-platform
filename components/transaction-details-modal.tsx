@@ -1,16 +1,17 @@
 "use client"
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import type { Transaction } from "@/app/types/common"
-import { format } from "date-fns"
-import { truncatePublicKey, formatNumber } from "@/app/lib/format"
+import { Separator } from "@/components/ui/separator"
+import { formatDate, formatTokenAmount, truncatePublicKey } from "@/app/lib/format"
 import { ExternalLink } from "lucide-react"
+import Link from "next/link"
+import type { TransactionHistoryItem } from "@/app/types/trade" // Corrected import
 
 interface TransactionDetailsModalProps {
   isOpen: boolean
   onClose: () => void
-  transaction: Transaction | null
+  transaction: TransactionHistoryItem | null
 }
 
 export function TransactionDetailsModal({ isOpen, onClose, transaction }: TransactionDetailsModalProps) {
@@ -18,117 +19,88 @@ export function TransactionDetailsModal({ isOpen, onClose, transaction }: Transa
     return null
   }
 
-  const solanaExplorerUrl = transaction.signature ? `https://solscan.io/tx/${transaction.signature}` : "#"
+  const explorerUrl = `https://solscan.io/tx/${transaction.signature}`
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px] bg-white dark:bg-dark-gray text-black dark:text-white border-light-gray dark:border-medium-gray rounded-md">
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle className="text-gold">Transaction Details</DialogTitle>
-          <DialogDescription className="text-black/70 dark:text-light-gray">
-            Detailed information about your transaction.
-          </DialogDescription>
+          <DialogTitle>Transaction Details</DialogTitle>
+          <DialogDescription>Information about your recent transaction.</DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-4 text-black dark:text-white text-sm">
+        <div className="grid gap-4 py-4 text-sm">
           <div className="flex justify-between">
-            <span className="font-semibold text-black/70 dark:text-light-gray">ID:</span>
-            <span>{transaction.id || "N/A"}</span>
+            <span className="text-muted-foreground">Type:</span>
+            <span className="font-medium capitalize">{transaction.type}</span>
           </div>
           <div className="flex justify-between">
-            <span className="font-semibold text-black/70 dark:text-light-gray">Type:</span>
-            <span className="capitalize">{transaction.type}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="font-semibold text-black/70 dark:text-light-gray">Status:</span>
+            <span className="text-muted-foreground">Status:</span>
             <span
-              className={`font-semibold ${
-                transaction.status === "completed"
-                  ? "text-positive-green"
-                  : transaction.status === "failed"
-                    ? "text-negative-red"
-                    : "text-gold"
-              }`}
+              className={`font-medium capitalize ${transaction.status === "success" ? "text-green-500" : "text-red-500"}`}
             >
               {transaction.status}
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="font-semibold text-black/70 dark:text-light-gray">Date:</span>
-            <span>{transaction.createdAt ? format(new Date(transaction.createdAt), "MMM dd, yyyy HH:mm") : "N/A"}</span>
+            <span className="text-muted-foreground">Date:</span>
+            <span className="font-medium">{formatDate(transaction.timestamp * 1000, "long")}</span>
           </div>
           <div className="flex justify-between">
-            <span className="font-semibold text-black/70 dark:text-light-gray">User Public Key:</span>
-            <span>{truncatePublicKey(transaction.userPublicKey, 8, 8)}</span>
+            <span className="text-muted-foreground">Signature:</span>
+            <span className="font-mono">{truncatePublicKey(transaction.signature)}</span>
           </div>
 
           {transaction.type === "swap" && (
             <>
+              <Separator />
               <div className="flex justify-between">
-                <span className="font-semibold text-black/70 dark:text-light-gray">Input Token Mint:</span>
-                <span>{truncatePublicKey(transaction.inputMint || "N/A", 8, 8)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-semibold text-black/70 dark:text-light-gray">Input Amount:</span>
-                <span>{transaction.inputAmount ? formatNumber(Number(transaction.inputAmount), 6) : "N/A"}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-semibold text-black/70 dark:text-light-gray">Output Token Mint:</span>
-                <span>{truncatePublicKey(transaction.outputMint || "N/A", 8, 8)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-semibold text-black/70 dark:text-light-gray">Output Amount:</span>
-                <span>{transaction.outputAmount ? formatNumber(Number(transaction.outputAmount), 6) : "N/A"}</span>
-              </div>
-            </>
-          )}
-
-          {transaction.type === "payment" && (
-            <>
-              <div className="flex justify-between">
-                <span className="font-semibold text-black/70 dark:text-light-gray">Recipient:</span>
-                <span>{truncatePublicKey(transaction.paymentRecipient || "N/A", 8, 8)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-semibold text-black/70 dark:text-light-gray">Payment Amount:</span>
-                <span>
-                  {transaction.paymentAmount ? formatNumber(Number(transaction.paymentAmount), 6) : "N/A"}{" "}
-                  {transaction.paymentSplToken ? truncatePublicKey(transaction.paymentSplToken, 4, 4) : "SOL"}
+                <span className="text-muted-foreground">Input Amount:</span>
+                <span className="font-medium">
+                  {transaction.inputAmount ? formatTokenAmount(transaction.inputAmount) : "N/A"}{" "}
+                  {transaction.inputTokenSymbol || ""}
                 </span>
               </div>
-              {transaction.paymentLabel && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Output Amount:</span>
+                <span className="font-medium">
+                  {transaction.outputAmount ? formatTokenAmount(transaction.outputAmount) : "N/A"}{" "}
+                  {transaction.outputTokenSymbol || ""}
+                </span>
+              </div>
+            </>
+          )}
+
+          {(transaction.type === "transfer" || transaction.type === "mint" || transaction.type === "burn") && (
+            <>
+              <Separator />
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Amount:</span>
+                <span className="font-medium">
+                  {transaction.amount ? formatTokenAmount(transaction.amount) : "N/A"} {transaction.tokenSymbol || ""}
+                </span>
+              </div>
+              {transaction.from && (
                 <div className="flex justify-between">
-                  <span className="font-semibold text-black/70 dark:text-light-gray">Label:</span>
-                  <span>{transaction.paymentLabel}</span>
+                  <span className="text-muted-foreground">From:</span>
+                  <span className="font-mono">{truncatePublicKey(transaction.from)}</span>
                 </div>
               )}
-              {transaction.paymentMessage && (
+              {transaction.to && (
                 <div className="flex justify-between">
-                  <span className="font-semibold text-black/70 dark:text-light-gray">Message:</span>
-                  <span>{transaction.paymentMessage}</span>
+                  <span className="text-muted-foreground">To:</span>
+                  <span className="font-mono">{truncatePublicKey(transaction.to)}</span>
                 </div>
               )}
             </>
           )}
-
-          <div className="flex justify-between items-center">
-            <span className="font-semibold text-black/70 dark:text-light-gray">Signature:</span>
-            {transaction.signature ? (
-              <a
-                href={solanaExplorerUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center space-x-1 text-gold hover:underline"
-              >
-                <span>{truncatePublicKey(transaction.signature, 6, 4)}</span>
-                <ExternalLink className="h-3 w-3" />
-              </a>
-            ) : (
-              "N/A"
-            )}
-          </div>
         </div>
-        <div className="flex justify-end">
-          <Button variant="gold-filled" onClick={onClose}>
+        <div className="flex flex-col gap-2">
+          <Button asChild variant="outline" className="w-full bg-transparent">
+            <Link href={explorerUrl} target="_blank" rel="noopener noreferrer">
+              View on Solscan <ExternalLink className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
+          <Button onClick={onClose} className="w-full">
             Close
           </Button>
         </div>

@@ -1,74 +1,62 @@
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+
 export default function FAQPage() {
+  const faqs = [
+    {
+      question: "What is Sparrow Protocol?",
+      answer:
+        "Sparrow Protocol is a decentralized finance (DeFi) platform built on the Solana blockchain, offering token swaps, advanced trading features, and integrated payment solutions.",
+    },
+    {
+      question: "Why Solana?",
+      answer:
+        "Solana provides high throughput, low transaction costs, and fast finality, making it an ideal blockchain for a responsive and efficient DeFi experience.",
+    },
+    {
+      question: "How do I swap tokens on Sparrow Protocol?",
+      answer:
+        "You can swap tokens directly on the main page. Select your input and output tokens, enter the amount, and confirm the swap. Ensure your wallet is connected.",
+    },
+    {
+      question: "Is Sparrow Protocol secure?",
+      answer:
+        "We prioritize security and utilize robust smart contracts. However, all DeFi platforms carry inherent risks, and users should exercise caution and understand the risks involved.",
+    },
+    {
+      question: "What wallets are supported?",
+      answer:
+        "Sparrow Protocol supports popular Solana wallets like Phantom, Solflare, and Backpack, among others, through the Solana Wallet Adapter.",
+    },
+    {
+      question: "How are transaction fees handled?",
+      answer:
+        "Transaction fees on Solana are generally very low. Sparrow Protocol may also apply a small platform fee, which is clearly indicated during the transaction process.",
+    },
+    {
+      question: "Where can I find more information or get support?",
+      answer:
+        "You can refer to our documentation (coming soon) or reach out to our community channels for support. Links to our social media and community platforms are available in the footer.",
+    },
+  ]
+
   return (
-    <div className="flex flex-1 flex-col items-center py-12 md:py-24 lg:py-32 bg-medium-gray dark:bg-black text-black dark:text-white px-4">
-      <h1 className="text-4xl font-bold mb-8 text-gold">Frequently Asked Questions</h1>
-      <div className="w-full max-w-3xl space-y-8">
-        {/* FAQ Item 1 */}
-        <div className="bg-white dark:bg-dark-gray p-6 rounded-lg shadow-md">
-          <h2 className="text-2xl font-semibold text-black dark:text-white mb-3">What is Sparrow Protocol?</h2>
-          <p className="text-black/70 dark:text-light-gray">
-            Sparrow Protocol is a decentralized exchange (DEX) aggregator built on the Solana blockchain. It allows
-            users to swap tokens seamlessly and efficiently by aggregating liquidity from various DEXes, ensuring you
-            get the best possible rates.
-          </p>
-        </div>
-
-        {/* FAQ Item 2 */}
-        <div className="bg-white dark:bg-dark-gray p-6 rounded-lg shadow-md">
-          <h2 className="text-2xl font-semibold text-black dark:text-white mb-3">How do I connect my wallet?</h2>
-          <p className="text-black/70 dark:text-light-gray">
-            To connect your wallet, click the "Connect Wallet" button in the top right corner of the interface. You will
-            be prompted to choose from supported Solana wallets like Phantom or Solflare. Follow the instructions in
-            your wallet to approve the connection.
-          </p>
-        </div>
-
-        {/* FAQ Item 3 */}
-        <div className="bg-white dark:bg-dark-gray p-6 rounded-lg shadow-md">
-          <h2 className="text-2xl font-semibold text-black dark:text-white mb-3">What is slippage tolerance?</h2>
-          <p className="text-black/70 dark:text-light-gray">
-            Slippage tolerance is the maximum percentage difference you are willing to accept between the quoted price
-            and the executed price of your swap. If the price moves beyond your set slippage tolerance during the
-            transaction, the swap will fail to protect you from unfavorable price changes. You can adjust this in the
-            "Settings" tab.
-          </p>
-        </div>
-
-        {/* FAQ Item 4 */}
-        <div className="bg-white dark:bg-dark-gray p-6 rounded-lg shadow-md">
-          <h2 className="text-2xl font-semibold text-black dark:text-white mb-3">
-            How does the "Pay & Receive" (Exact Out) feature work?
-          </h2>
-          <p className="text-black/70 dark:text-light-gray">
-            The "Pay & Receive" feature allows a merchant to specify an exact amount of a specific token they wish to
-            receive. The customer can then pay with any other supported token, and the system will calculate the exact
-            amount of the input token required to fulfill the merchant's request. This is powered by Jupiter's ExactOut
-            swap mode.
-          </p>
-        </div>
-
-        {/* FAQ Item 5 */}
-        <div className="bg-white dark:bg-dark-gray p-6 rounded-lg shadow-md">
-          <h2 className="text-2xl font-semibold text-black dark:text-white mb-3">
-            Where can I view my transaction history?
-          </h2>
-          <p className="text-black/70 dark:text-light-gray">
-            You can view your past swap and payment transactions on the "Portfolio" page. This page provides a detailed
-            history, including transaction type, amounts, status, and links to Solana explorers.
-          </p>
-        </div>
-
-        {/* FAQ Item 6 */}
-        <div className="bg-white dark:bg-dark-gray p-6 rounded-lg shadow-md">
-          <h2 className="text-2xl font-semibold text-black dark:text-white mb-3">Is Sparrow Protocol secure?</h2>
-          <p className="text-black/70 dark:text-light-gray">
-            Yes, Sparrow Protocol is non-custodial, meaning we never hold your funds. All transactions are executed
-            directly on the Solana blockchain via smart contracts. We leverage established and audited protocols like
-            Jupiter Aggregator for swap execution. However, interacting with any DeFi application carries inherent
-            risks, which users should understand.
-          </p>
-        </div>
-      </div>
+    <div className="container mx-auto py-12 px-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-3xl font-bold text-center text-gold">Frequently Asked Questions</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Accordion type="single" collapsible className="w-full">
+            {faqs.map((faq, index) => (
+              <AccordionItem value={`item-${index}`} key={index}>
+                <AccordionTrigger className="text-lg text-left hover:no-underline">{faq.question}</AccordionTrigger>
+                <AccordionContent className="text-base text-muted-foreground">{faq.answer}</AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </CardContent>
+      </Card>
     </div>
   )
 }

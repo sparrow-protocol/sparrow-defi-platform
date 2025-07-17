@@ -1,34 +1,34 @@
-import SwapInterface from "@/components/swap-interface"
-import Image from "next/image"
+import { Button } from "@/components/ui/button"
+import Link from "next/link"
+import { ArrowRight } from "lucide-react"
 
-export default function HeroSection() {
+export function HeroSection() {
   return (
-    <section className="relative flex min-h-[calc(100vh-120px)] items-center justify-center py-12 md:py-24 lg:py-32 bg-medium-gray dark:bg-black">
-      {/* Background Image */}
-      <Image
-        src="/images/hero-background.png"
-        alt="Gold coins background"
-        fill
-        className="z-0 object-cover opacity-20 dark:opacity-10"
-        priority
-      />
-
-      {/* Overlay for readability */}
-      <div className="absolute inset-0 z-10 bg-white opacity-80 dark:bg-black dark:opacity-80" />
-
-      <div className="relative z-20 container flex flex-col items-center justify-center gap-8 px-4 md:px-6">
-        <div className="text-center">
-          <p className="text-sm font-semibold uppercase tracking-wider text-gold mb-2">
-            Welcome to Sparrow Protocol
-          </p>
-          <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl text-black dark:text-white">
-            The Future of Decentralized Swaps
-          </h1>
-          <p className="mx-auto mt-4 max-w-[700px] text-black/70 md:text-xl dark:text-light-gray">
-            Experience seamless, secure, and efficient token exchanges across multiple DEXes.
-          </p>
+    <section
+      className="relative flex h-[500px] items-center justify-center overflow-hidden rounded-xl bg-cover bg-center p-8 text-center text-white shadow-lg"
+      style={{ backgroundImage: "url('/images/hero-background.png')" }}
+    >
+      <div className="absolute inset-0 bg-black/50" />
+      <div className="relative z-10 space-y-6">
+        <h1 className="text-5xl font-bold leading-tight md:text-6xl">Trade, Earn, and Build on Solana</h1>
+        <p className="text-lg md:text-xl max-w-2xl mx-auto">
+          Experience the future of decentralized finance with lightning-fast transactions and low fees.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <Button asChild size="lg" className="bg-primary-foreground text-primary hover:bg-primary-foreground/90">
+            <Link href="/swap">
+              Start Swapping <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
+          <Button
+            asChild
+            size="lg"
+            variant="outline"
+            className="text-white border-white hover:bg-white/10 bg-transparent"
+          >
+            <Link href="/about">Learn More</Link>
+          </Button>
         </div>
-        <SwapInterface />
       </div>
     </section>
   )

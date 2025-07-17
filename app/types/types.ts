@@ -41,3 +41,15 @@ export interface APIError {
   message: string
   details?: string
 }
+
+// This file can be used for general utility types that don't fit into other categories.
+
+export type Nullable<T> = T | null | undefined
+
+export type DeepPartial<T> = T extends object
+  ? {
+      [P in keyof T]?: DeepPartial<T[P]>
+    }
+  : T
+
+export type ValueOf<T> = T[keyof T]

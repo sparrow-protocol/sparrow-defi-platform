@@ -1,527 +1,351 @@
 "use client"
 
-import type React from "react"
 import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
-import { Settings, ChevronDown, Rocket, RefreshCcw, ArrowUpDown, Eye, XCircle, Bell } from "lucide-react"
-import { getJupiterQuote, getJupiterSwapTransaction, sendAndConfirmRawTransaction } from "@/app/lib/defi-api"
-import type { JupiterQuoteResponse } from "@/app/types/api"
-import type { Token } from "@/app/types/tokens"
-import { useTheme } from "next-themes"
-import { useSwapSettings } from "@/app/hooks/use-swap-settings"
-import { SwapSettings } from "@/components/swap-settings"
+import { Card, CardContent } from "@/components/ui/card"
+import { Settings, ArrowDown, Loader2 } from "lucide-react"
 import { TokenSelectModal } from "@/components/token-select-modal"
-import { useToast } from "@/app/hooks/use-toast"
+import { SwapSettings } from "@/components/swap-settings"
+import type { TokenInfo } from "@/app/types/tokens"
+import { useSwapQuote } from "@/app/hooks/use-swap-quote"
 import { useWallet } from "@/components/wallet-provider"
-import { TransactionStatusModal } from "@/components/payments/transaction-status-modal"
-import { useSolanaPay } from "@/app/hooks/use-solana-pay"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
-import { VersionedTransaction } from "@solana/web3.js"
-import { TokenChart } from "@/components/token-chart"
-import { TokenInput } from "@/components/swap/token-input"
+import { useToast } from "@/hooks/use-toast"
 import { SwapDetails } from "@/components/swap/swap-details"
 import { SwapConfirmationModal } from "@/components/swap/swap-confirmation-modal"
-import { TokenInfoCards } from "@/components/swap/token-info-cards"
+import { executeSwapTransaction } from "@/server/actions/swap"
+import { formatTokenAmount } from "@/app/lib/format"
 import { useTokenBalances } from "@/app/hooks/use-token-balances"
-import Link from "next/link" // Import Link for navigation
+import { SOL_MINT, USDC_MINT, ERROR_MESSAGES } from "@/app/lib/constants"
+import { TokenInput } from "@/components/swap/token-input"
+import { UI_CONFIG } from "@/app/lib/ui-config" // Import UI_CONFIG
+import { truncatePublicKey } from "@/app/lib/utils" // Import truncatePublicKey
 
-export default function SwapInterface() {
-  const [activeTab, setActiveTab] = useState("instant") // "instant", "trigger", "recurring", "settings"
-  const [tokens, setTokens] = useState<Token[]>([])
-  const [sellingToken, setSellingToken] = useState<Token | null>(null)
-  const [buyingToken, setBuyingToken] = useState<Token | null>(null)
+export function SwapInterface() {
+  const { address, isConnected, signTransaction, signAllTransactions } = useWallet()
+  const { toast } = useToast()
+  const {
+    balances,
+    isLoading: isBalancesLoading,
+    refetch: refetchBalances,
+  } = useTokenBalances(address?.toBase58() || null)
+
+  const [inputToken, setInputToken] = useState<TokenInfo | null>(null)
+  const [outputToken, setOutputToken] = useState<TokenInfo | null>(null)
   const [inputAmount, setInputAmount] = useState<string>("")
   const [outputAmount, setOutputAmount] = useState<string>("")
-  const [quote, setQuote] = useState<JupiterQuoteResponse | null>(null)
-  const [isFetchingQuote, setIsFetchingQuote] = useState(false)
-  const [isTokenModalOpen, setIsTokenModalOpen] = useState(false)
-  const [modalFor, setModalFor] = useState<"selling" | "buying" | null>(null)
-  const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false)
-  const [transactionStatus, setTransactionStatus] = useState<"pending" | "confirmed" | "failed">("pending")
-  const [transactionSignature, setTransactionSignature] = useState<string | null>(null)
-  const [transactionMessage, setTransactionMessage] = useState<string | undefined>(undefined)
-  const [isChartModalOpen, setIsChartModalOpen] = useState(false)
-  const [isConfirmSwapModalOpen, setIsConfirmSwapModalOpen] = useState(false)
-  const [isSwapping, setIsSwapping] = useState(false)
-  const [tokenFetchError, setTokenFetchError] = useState<string | null>(null)
-  const [isLoadingTokens, setIsLoadingTokens] = useState(true)
+  const [isInputting, setIsInputting] = useState<"input" | "output" | null>(null)
+  const [isConnecting, setIsConnecting] = useState(false) // Declare isConnecting
 
-  const { theme } = useTheme()
-  const { settings } = useSwapSettings()
-  const { showToast } = useToast()
-  const { isConnected, address, signTransaction } = useWallet()
+  const [isTokenSelectModalOpen, setIsTokenSelectModalOpen] = useState(false)
+  const [selectTokenType, setSelectTokenType] = useState<"input" | "output" | null>(null)
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false)
 
-  const { balances, isLoadingBalances, refetchBalances } = useTokenBalances(tokens)
-
-  // No longer using useSolanaPay directly in SwapInterface for QR generation,
-  // it's now encapsulated in OnRampSolanaPay component.
-  // Keeping the hook import for potential future direct use if needed.
   const {
-    solanaPayUrl,
-    isLoading: isGeneratingSolanaPay,
-    generateSolanaPayUrl,
-    savePaymentTransaction,
-  } = useSolanaPay("GjFwB2222222222222222222222222222222222222222222222222222222222") // Placeholder recipient
-
-  const getActiveTabClass = (tabName: string) => {
-    return activeTab === tabName
-      ? "bg-gold text-black"
-      : "text-black hover:bg-light-gray dark:text-white dark:hover:bg-dark-gray"
-  }
-
-  // Fetch token list on component mount
-  useEffect(() => {
-    const fetchTokens = async () => {
-      setIsLoadingTokens(true)
-      setTokenFetchError(null)
-      try {
-        const response = await fetch("/api/tokens")
-        const data = await response.json()
-        if (!response.ok) {
-          throw new Error(data.error || "Failed to load tokens from API.")
-        }
-        if (!Array.isArray(data)) {
-          console.error("Token API did not return an array:", data)
-          throw new Error("Failed to load tokens: Invalid data format.")
-        }
-        const fetchedTokens: Token[] = data
-        setTokens(fetchedTokens)
-
-        // Set default tokens if not already set or if they are no longer in the fetched list
-        if (!sellingToken || !fetchedTokens.some((t) => t.mint === sellingToken.mint)) {
-          setSellingToken(fetchedTokens.find((t) => t.symbol === "SOL") || fetchedTokens[0] || null)
-        }
-        if (!buyingToken || !fetchedTokens.some((t) => t.symbol === buyingToken?.symbol)) {
-          setBuyingToken(fetchedTokens.find((t) => t.symbol === "USDC") || fetchedTokens[1] || null)
-        }
-      } catch (error: any) {
-        console.error("Failed to fetch tokens:", error)
-        setTokenFetchError(error.message || "Failed to load tokens. Please try again later.")
-        showToast({ message: error.message || "Failed to load tokens. Please try again later.", type: "error" })
-        setTokens([])
-      } finally {
-        setIsLoadingTokens(false)
-      }
-    }
-    fetchTokens()
-  }, [sellingToken, buyingToken, showToast])
-
-  // Fetch quote when relevant inputs change
-  useEffect(() => {
-    const fetchQuote = async () => {
-      if (sellingToken && buyingToken && inputAmount && Number.parseFloat(inputAmount) > 0) {
-        setIsFetchingQuote(true)
-        try {
-          const amountInSmallestUnit = (Number.parseFloat(inputAmount) * Math.pow(10, sellingToken.decimals)).toFixed(0)
-          const fetchedQuote = await getJupiterQuote(
-            sellingToken.mint,
-            buyingToken.mint,
-            amountInSmallestUnit,
-            settings.slippage * 100,
-            settings.platformFeeBps, // Pass platformFeeBps
-          )
-          if (fetchedQuote) {
-            setQuote(fetchedQuote)
-            const readableOutput = Number.parseFloat(fetchedQuote.outAmount) / Math.pow(10, buyingToken.decimals)
-            setOutputAmount(readableOutput.toFixed(buyingToken.decimals > 6 ? 6 : buyingToken.decimals))
-          } else {
-            setOutputAmount("Error fetching quote")
-            setQuote(null)
-            showToast({ message: "Failed to get swap quote.", type: "error" })
-          }
-        } catch (error) {
-          console.error("Error fetching Jupiter quote:", error)
-          setOutputAmount("Error")
-          setQuote(null)
-          showToast({ message: "Error fetching swap quote. Check console for details.", type: "error" })
-        } finally {
-          setIsFetchingQuote(false)
-        }
-      } else {
-        setOutputAmount("")
-        setQuote(null)
-      }
-    }
-    const handler = setTimeout(() => {
-      fetchQuote()
-    }, 500)
-    return () => clearTimeout(handler)
-  }, [inputAmount, sellingToken, buyingToken, settings.slippage, settings.platformFeeBps, showToast]) // Add platformFeeBps to dependencies
-
-  const handleInputAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setInputAmount(e.target.value)
-  }
-
-  const handleTokenSelect = useCallback(
-    (token: Token) => {
-      if (modalFor === "selling") {
-        setSellingToken(token)
-      } else if (modalFor === "buying") {
-        setBuyingToken(token)
-      }
-      setIsTokenModalOpen(false)
-    },
-    [modalFor],
+    quote,
+    isLoading: isQuoteLoading,
+    error: quoteError,
+    refetchQuote,
+  } = useSwapQuote(
+    inputToken,
+    outputToken,
+    isInputting === "input" ? inputAmount : outputAmount,
+    isInputting === "input" ? "ExactIn" : "ExactOut",
   )
 
-  const openTokenModal = (forToken: "selling" | "buying") => {
-    setModalFor(forToken)
-    setIsTokenModalOpen(true)
-  }
-
-  const swapTokens = () => {
-    if (sellingToken && buyingToken) {
-      setSellingToken(buyingToken)
-      setBuyingToken(sellingToken)
-      setInputAmount(outputAmount) // Swap amounts too
-      setOutputAmount(inputAmount)
-      setQuote(null) // Clear quote as tokens have swapped
+  useEffect(() => {
+    // Set default tokens if not already set
+    if (!inputToken) {
+      setInputToken({
+        address: SOL_MINT,
+        chainId: 101,
+        decimals: 9,
+        name: "Solana",
+        symbol: "SOL",
+        logoURI: "/images/sol-icon.png",
+      })
     }
-  }
+    if (!outputToken) {
+      setOutputToken({
+        address: USDC_MINT,
+        chainId: 101,
+        decimals: 6,
+        name: "USD Coin",
+        symbol: "USDC",
+        logoURI:
+          "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/EPjFWdd5AufqSSqeM2qN1xzybapTVG4itwqZNfwpPJ55/logo.png",
+      })
+    }
+  }, [inputToken, outputToken])
 
-  const handleInitiateSwap = () => {
+  useEffect(() => {
+    if (quote && !isQuoteLoading) {
+      if (isInputting === "input") {
+        setOutputAmount(formatTokenAmount(quote.outAmount, outputToken?.decimals || 6))
+      } else if (isInputting === "output") {
+        setInputAmount(formatTokenAmount(quote.inAmount, inputToken?.decimals || 9))
+      }
+    } else if (!isQuoteLoading && !quote && (inputAmount || outputAmount)) {
+      // Clear output if no quote found and there's an amount
+      if (isInputting === "input") setOutputAmount("")
+      else if (isInputting === "output") setInputAmount("")
+    }
+  }, [quote, isQuoteLoading, isInputting, inputToken, outputToken, inputAmount, outputAmount])
+
+  const handleInputAmountChange = useCallback((value: string) => {
+    setInputAmount(value)
+    setIsInputting("input")
+  }, [])
+
+  const handleOutputAmountChange = useCallback((value: string) => {
+    setOutputAmount(value)
+    setIsInputting("output")
+  }, [])
+
+  const handleSelectToken = useCallback(
+    (token: TokenInfo) => {
+      if (selectTokenType === "input") {
+        if (token.address === outputToken?.address) {
+          setOutputToken(inputToken) // Swap them
+        }
+        setInputToken(token)
+      } else if (selectTokenType === "output") {
+        if (token.address === inputToken?.address) {
+          setInputToken(outputToken) // Swap them
+        }
+        setOutputToken(token)
+      }
+      setIsTokenSelectModalOpen(false)
+    },
+    [selectTokenType, inputToken, outputToken],
+  )
+
+  const handleSwapTokens = useCallback(() => {
+    setInputToken(outputToken)
+    setOutputToken(inputToken)
+    setInputAmount(outputAmount)
+    setOutputAmount(inputAmount)
+    setIsInputting(isInputting === "input" ? "output" : "input") // Maintain the active input field
+  }, [inputToken, outputToken, inputAmount, outputAmount, isInputting])
+
+  const handleMaxInput = useCallback(() => {
+    if (!inputToken || !address || isBalancesLoading) return
+
+    const balance = balances.find((b) => b.tokenAddress === inputToken.address)
+    if (balance) {
+      let amount = balance.balance
+      // Deduct a small amount for SOL if it's the input token to cover transaction fees
+      if (inputToken.address === SOL_MINT) {
+        amount = Math.max(0, amount - 0.005) // Leave 0.005 SOL for fees
+      }
+      setInputAmount(amount.toString())
+      setIsInputting("input")
+    }
+  }, [inputToken, address, balances, isBalancesLoading])
+
+  const handleSwap = useCallback(async () => {
     if (!isConnected || !address) {
-      showToast({ message: "Please connect your wallet to swap.", type: "warning" })
+      toast({
+        title: "Wallet Not Connected",
+        description: ERROR_MESSAGES.WALLET_NOT_CONNECTED,
+        variant: "destructive",
+      })
       return
     }
-    if (!quote) {
-      showToast({ message: "No valid quote available for swap.", type: "warning" })
+    if (!inputToken || !outputToken || !inputAmount || !outputAmount || !quote) {
+      toast({
+        title: "Missing Information",
+        description: "Please select tokens and enter amounts.",
+        variant: "destructive",
+      })
       return
     }
-    if (Number.parseFloat(inputAmount) <= 0) {
-      showToast({ message: "Please enter an amount to swap.", type: "warning" })
+    if (isQuoteLoading) {
+      toast({
+        title: "Loading Quote",
+        description: "Please wait for the swap quote to load.",
+        variant: "warning",
+      })
       return
     }
-    setIsConfirmSwapModalOpen(true)
-  }
+    if (quoteError) {
+      toast({
+        title: "Quote Error",
+        description: quoteError,
+        variant: "destructive",
+      })
+      return
+    }
 
-  const handleConfirmSwap = async () => {
-    if (!isConnected || !address || !quote || !sellingToken || !buyingToken) {
-      showToast({ message: "Swap prerequisites not met.", type: "error" })
+    setIsConfirmationModalOpen(true)
+  }, [
+    isConnected,
+    address,
+    inputToken,
+    outputToken,
+    inputAmount,
+    outputAmount,
+    quote,
+    isQuoteLoading,
+    quoteError,
+    toast,
+  ])
+
+  const confirmSwap = useCallback(async () => {
+    if (!quote || !address || !signTransaction || !signAllTransactions) {
+      toast({
+        title: "Error",
+        description: "Swap data or wallet connection missing.",
+        variant: "destructive",
+      })
       return
     }
 
-    setIsConfirmSwapModalOpen(false) // Close confirmation modal
-    setIsTransactionModalOpen(true)
-    setTransactionStatus("pending")
-    setTransactionSignature(null)
-    setTransactionMessage("Preparing transaction...")
-    setIsSwapping(true)
+    setIsConfirmationModalOpen(false) // Close modal immediately
+
+    toast({
+      title: "Initiating Swap",
+      description: "Preparing your transaction...",
+      duration: UI_CONFIG.TOAST_DURATION,
+    })
 
     try {
-      // Get platform fee account from environment variable
-      const platformFeeAccount = process.env.NEXT_PUBLIC_PLATFORM_FEE_ACCOUNT || null
+      const {
+        success,
+        signature,
+        error: txError,
+      } = await executeSwapTransaction(quote, address.toBase58(), signTransaction, signAllTransactions)
 
-      // 1. Get serialized transaction from Jupiter
-      setTransactionMessage("Fetching swap transaction from Jupiter...")
-      const swapTransactionResponse = await getJupiterSwapTransaction(quote, address, platformFeeAccount)
-
-      if (!swapTransactionResponse || !swapTransactionResponse.swapTransaction) {
-        throw new Error("Failed to get swap transaction from Jupiter.")
+      if (success && signature) {
+        toast({
+          title: "Swap Successful!",
+          description: `Transaction confirmed: ${truncatePublicKey(signature)}`,
+          variant: "success",
+          duration: UI_CONFIG.TOAST_DURATION,
+        })
+        setInputAmount("")
+        setOutputAmount("")
+        refetchBalances() // Refresh balances after successful swap
+      } else {
+        toast({
+          title: "Swap Failed",
+          description: txError || ERROR_MESSAGES.TRANSACTION_FAILED,
+          variant: "destructive",
+          duration: UI_CONFIG.TOAST_DURATION,
+        })
       }
-
-      // 2. Deserialize the transaction
-      const transactionBuffer = Buffer.from(swapTransactionResponse.swapTransaction, "base64")
-      const transaction = VersionedTransaction.deserialize(transactionBuffer)
-
-      // 3. Sign the transaction
-      setTransactionMessage("Signing transaction with your wallet...")
-      const signedTransaction = await signTransaction(transaction) // Use wallet adapter's signTransaction
-
-      if (!signedTransaction) {
-        throw new Error("Transaction signing failed or was cancelled.")
-      }
-
-      // 4. Serialize the signed transaction back to base64
-      const signedRawTransaction = Buffer.from(signedTransaction.serialize()).toString("base64")
-
-      // 5. Send and confirm the transaction
-      setTransactionMessage("Sending transaction to Solana network...")
-      const signature = await sendAndConfirmRawTransaction(signedRawTransaction)
-
-      setTransactionSignature(signature)
-      setTransactionStatus("confirmed")
-      setTransactionMessage("Transaction successful!")
-      showToast({ message: "Swap successful!", type: "success" })
-
-      // 6. Save transaction to database
-      await fetch("/api/transactions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userPublicKey: address,
-          inputMint: sellingToken?.mint,
-          outputMint: buyingToken?.mint,
-          inputAmount: quote.inAmount,
-          outputAmount: quote.outAmount,
-          signature: signature,
-          status: "completed",
-          type: "swap", // Explicitly set type as 'swap'
-        }),
+    } catch (err: any) {
+      console.error("Swap execution error:", err)
+      toast({
+        title: "Swap Error",
+        description: err.message || ERROR_MESSAGES.TRANSACTION_FAILED,
+        variant: "destructive",
+        duration: UI_CONFIG.TOAST_DURATION,
       })
-      refetchBalances() // Refresh balances after a successful swap
-    } catch (error: any) {
-      console.error("Swap failed:", error)
-      setTransactionStatus("failed")
-      setTransactionMessage(error.message || "Swap failed. Please try again.")
-      showToast({ message: error.message || "Swap failed.", type: "error" })
-    } finally {
-      setIsSwapping(false)
     }
-  }
+  }, [quote, address, signTransaction, signAllTransactions, toast, refetchBalances])
 
-  const handleClearInputs = () => {
-    setInputAmount("")
-    setOutputAmount("")
-    setQuote(null)
-    showToast({ message: "Swap inputs cleared.", type: "info" })
-  }
+  const inputTokenBalance = balances.find((b) => b.tokenAddress === inputToken?.address)?.balance || 0
+  const outputTokenBalance = balances.find((b) => b.tokenAddress === outputToken?.address)?.balance || 0
 
-  const solBalance = balances["SOL"]?.amount || 0
-  // Find SPRW token from the actual fetched tokens, not a dummy one
-  const sprwToken = tokens.find((t) => t.symbol === "SPRW")
-  const sprwBalance = sprwToken ? balances[sprwToken.symbol]?.amount : null
+  const inputTokenUsdValue = inputToken ? Number.parseFloat(inputAmount) * (inputToken.price || 0) : 0
+  const outputTokenUsdValue = outputToken ? Number.parseFloat(outputAmount) * (outputToken.price || 0) : 0
+
+  const canSwap =
+    isConnected &&
+    inputToken &&
+    outputToken &&
+    Number.parseFloat(inputAmount) > 0 &&
+    quote &&
+    !isQuoteLoading &&
+    !quoteError
 
   return (
-    <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-lg dark:bg-dark-gray">
-      {/* Token Select Modal */}
-      <TokenSelectModal
-        isOpen={isTokenModalOpen}
-        onClose={() => setIsTokenModalOpen(false)}
-        onSelectToken={handleTokenSelect}
-        tokens={tokens}
-        isLoadingTokens={isLoadingTokens}
-        tokenFetchError={tokenFetchError}
-      />
-
-      {/* Transaction Status Modal */}
-      <TransactionStatusModal
-        isOpen={isTransactionModalOpen}
-        onClose={() => setIsTransactionModalOpen(false)}
-        status={transactionStatus}
-        signature={transactionSignature}
-        message={transactionMessage}
-      />
-
-      {/* Chart Modal */}
-      <Dialog open={isChartModalOpen} onOpenChange={setIsChartModalOpen}>
-        <DialogContent className="sm:max-w-[600px] bg-white dark:bg-dark-gray text-black dark:text-white border-light-gray dark:border-medium-gray rounded-md">
-          <DialogHeader>
-            <DialogTitle className="text-gold">Token Chart</DialogTitle>
-            <DialogDescription className="text-black/70 dark:text-light-gray">
-              Price history for {sellingToken?.symbol} / {buyingToken?.symbol}
-            </DialogDescription>
-          </DialogHeader>
-          <TokenChart sellingToken={sellingToken} buyingToken={buyingToken} />
-          <div className="flex justify-end">
-            <Button variant="gold-filled" onClick={() => setIsChartModalOpen(false)}>
-              Close
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Swap Confirmation Modal */}
-      <SwapConfirmationModal
-        isOpen={isConfirmSwapModalOpen}
-        onClose={() => setIsConfirmSwapModalOpen(false)}
-        onConfirm={handleConfirmSwap}
-        quote={quote}
-        sellingToken={sellingToken}
-        buyingToken={buyingToken}
-        inputAmount={inputAmount}
-        outputAmount={outputAmount}
-        isSwapping={isSwapping}
-      />
-
-      {/* Tabs */}
-      <div className="mb-6 flex flex-wrap justify-center gap-1 rounded-lg bg-medium-gray p-1 dark:bg-input-bg-dark">
-        <Button
-          variant="ghost"
-          className={`flex-1 rounded-lg px-1 py-1 text-[0.65rem] sm:px-2 sm:py-2 sm:text-xs md:px-4 md:py-2 md:text-sm font-semibold ${getActiveTabClass("instant")}`}
-          onClick={() => setActiveTab("instant")}
-        >
-          <Rocket className={`mr-1 h-4 w-4 ${activeTab === "instant" ? "text-black" : "text-gold"}`} />
-          <span className="hidden sm:inline">Instant</span>
-        </Button>
-        <Button
-          variant="ghost"
-          className={`flex-1 rounded-lg px-1 py-1 text-[0.65rem] sm:px-2 sm:py-2 sm:text-xs md:px-4 md:py-2 md:text-sm font-semibold ${getActiveTabClass("trigger")}`}
-          onClick={() => setActiveTab("trigger")}
-        >
-          <Bell className={`mr-1 h-4 w-4 ${activeTab === "trigger" ? "text-black" : "text-gold"}`} />
-          <span className="hidden sm:inline">Trigger</span>
-        </Button>
-        <Button
-          variant="ghost"
-          className={`flex-1 rounded-lg px-1 py-1 text-[0.65rem] sm:px-2 sm:py-2 sm:text-xs md:px-4 md:py-2 md:text-sm font-semibold ${getActiveTabClass("recurring")}`}
-          onClick={() => setActiveTab("recurring")}
-        >
-          <RefreshCcw className={`mr-1 h-4 w-4 ${activeTab === "recurring" ? "text-black" : "text-gold"}`} />
-          <span className="hidden sm:inline">Recurring</span>
-        </Button>
-        <Button
-          variant="ghost"
-          className={`flex-1 rounded-lg px-1 py-1 text-[0.65rem] sm:px-2 sm:py-2 sm:text-xs md:px-4 md:py-2 md:text-sm font-semibold ${getActiveTabClass("settings")}`}
-          onClick={() => setActiveTab("settings")}
-        >
-          <Settings className={`mr-1 h-4 w-4 ${activeTab === "settings" ? "text-black" : "text-gold"}`} />
-          <span className="hidden sm:inline">Settings</span>
-        </Button>
-      </div>
-
-      {/* Tab Content */}
-      {activeTab === "instant" && (
-        <div className="space-y-4">
-          {/* Ultra V2 and Refresh */}
-          <div className="flex items-center justify-between text-light-gray dark:text-light-gray">
-            <Button
-              variant="ghost"
-              className="flex items-center space-x-1 text-sm hover:bg-medium-gray rounded-md dark:hover:bg-input-bg-dark"
-            >
-              <Rocket className="h-3 w-3 text-gold" />
-              <span>Ultra V2</span>
-              <ChevronDown className="h-3 w-3 text-gold" />
-            </Button>
-            <Button variant="ghost" size="icon" className="hover:bg-medium-gray rounded-md dark:hover:bg-input-bg-dark">
-              <RefreshCcw className="h-4 w-4 text-gold" />
-              <span className="sr-only">Refresh</span>
-            </Button>
-          </div>
-
-          {tokenFetchError && (
-            <div className="p-3 rounded-md bg-negative-red/10 border border-negative-red text-negative-red text-sm">
-              <p className="font-semibold">Error loading tokens:</p>
-              <p>{tokenFetchError}</p>
-              <p className="mt-1 text-xs">Please check your network connection or try again later.</p>
-            </div>
-          )}
-
-          {/* Selling Section */}
-          <TokenInput
-            label="Selling"
-            amount={inputAmount}
-            onAmountChange={handleInputAmountChange}
-            selectedToken={sellingToken}
-            onSelectTokenClick={() => openTokenModal("selling")}
-            balance={sellingToken ? balances[sellingToken.symbol]?.amount : null}
-            onMaxClick={() => {
-              if (sellingToken && balances[sellingToken.symbol]) {
-                setInputAmount(balances[sellingToken.symbol].amount.toString())
-              }
-            }}
-            onHalfClick={() => {
-              if (sellingToken && balances[sellingToken.symbol]) {
-                setInputAmount((balances[sellingToken.symbol].amount / 2).toString())
-              }
-            }}
-          />
-
-          {/* Swap Icon */}
-          <div className="flex justify-center -my-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="rounded-full bg-medium-gray hover:bg-light-gray dark:bg-input-bg-dark dark:hover:bg-dark-gray"
-              onClick={swapTokens}
-            >
-              <ArrowUpDown className="h-5 w-5 text-gold" />
-              <span className="sr-only">Swap tokens</span>
-            </Button>
-          </div>
-
-          {/* Buying Section */}
-          <TokenInput
-            label="Buying"
-            amount={outputAmount}
-            onAmountChange={() => {}} // Read-only
-            selectedToken={buyingToken}
-            onSelectTokenClick={() => openTokenModal("buying")}
-            balance={buyingToken ? balances[buyingToken.symbol]?.amount : null}
-            readOnly
-            isFetchingQuote={isFetchingQuote}
-          />
-
-          {/* Custom Fee */}
-          <div className="text-center text-sm text-black/70 dark:text-light-gray mt-4">
-            Custom Fee: <span className="font-semibold text-gold">{settings.customFee}%</span>
-          </div>
-
-          {/* Jupiter Route Plan and Price Impact */}
-          <SwapDetails quote={quote} sellingToken={sellingToken} buyingToken={buyingToken} />
-
-          {/* Swap Button */}
-          <Button
-            variant="gold-filled"
-            className="w-full rounded-md py-3 text-lg font-semibold mt-4"
-            onClick={handleInitiateSwap}
-            disabled={!isConnected || isFetchingQuote || !quote || Number.parseFloat(inputAmount) <= 0 || isSwapping}
-          >
-            {isConnected
-              ? isFetchingQuote
-                ? "Fetching Quote..."
-                : isSwapping
-                  ? "Swapping..."
-                  : "Swap"
-              : "Connect Wallet"}
+    <Card className="w-full">
+      <CardContent className="p-6 space-y-4">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold">Swap</h2>
+          <Button variant="ghost" size="icon" onClick={() => setIsSettingsOpen(true)}>
+            <Settings className="h-5 w-5" />
+            <span className="sr-only">Swap Settings</span>
           </Button>
-
-          {/* Clear Inputs Button */}
-          <div className="flex justify-center mt-4">
-            <Button
-              variant="ghost"
-              className="flex items-center space-x-2 text-black/70 hover:bg-medium-gray rounded-md dark:text-light-gray dark:hover:bg-input-bg-dark"
-              onClick={handleClearInputs}
-            >
-              <XCircle className="h-4 w-4 text-gold" />
-              <span>Clear Inputs</span>
-            </Button>
-          </div>
-
-          {/* Bottom Info Cards & Chart/History Buttons */}
-          <div className="mt-6 flex flex-col sm:flex-row justify-center gap-4">
-            <Button
-              variant="ghost"
-              className="flex-1 flex items-center justify-center space-x-2 text-black/70 hover:bg-medium-gray rounded-md dark:text-light-gray dark:hover:bg-input-bg-dark"
-              onClick={() => setIsChartModalOpen(true)}
-            >
-              <Eye className="h-4 w-4 text-gold" />
-              <span>Show Chart</span>
-            </Button>
-            <Link href="/portfolio" passHref className="flex-1">
-              <Button
-                variant="ghost"
-                className="w-full flex items-center justify-center space-x-2 text-black/70 hover:bg-medium-gray rounded-md dark:text-light-gray dark:hover:bg-input-bg-dark"
-              >
-                <Eye className="h-4 w-4 text-gold" />
-                <span>Show History</span>
-              </Button>
-            </Link>
-          </div>
-
-          <TokenInfoCards
-            solToken={tokens.find((t) => t.symbol === "SOL")}
-            sprwToken={sprwToken} // Pass the actual sprwToken found (or null)
-            solBalance={solBalance}
-            sprwBalance={sprwBalance}
-          />
         </div>
-      )}
 
-      {activeTab === "trigger" && (
-        <div className="text-center text-black/70 dark:text-light-gray py-8">Trigger swaps coming soon!</div>
-      )}
+        <TokenInput
+          label="You pay"
+          amount={inputAmount}
+          onAmountChange={handleInputAmountChange}
+          token={inputToken}
+          onTokenSelect={() => {
+            setSelectTokenType("input")
+            setIsTokenSelectModalOpen(true)
+          }}
+          balance={inputTokenBalance}
+          onMaxClick={handleMaxInput}
+          usdValue={inputTokenUsdValue}
+          isLoadingBalance={isBalancesLoading}
+        />
 
-      {activeTab === "recurring" && (
-        <div className="text-center text-black/70 dark:text-light-gray py-8">Recurring swaps coming soon!</div>
-      )}
-
-      {activeTab === "settings" && (
-        <div className="p-4">
-          <h2 className="text-2xl font-bold text-gold mb-4 text-center">Swap Settings</h2>
-          <SwapSettings />
+        <div className="flex justify-center my-2">
+          <Button variant="outline" size="icon" onClick={handleSwapTokens} className="rounded-full bg-transparent">
+            <ArrowDown className="h-5 w-5" />
+            <span className="sr-only">Swap Tokens</span>
+          </Button>
         </div>
+
+        <TokenInput
+          label="You receive"
+          amount={outputAmount}
+          onAmountChange={handleOutputAmountChange}
+          token={outputToken}
+          onTokenSelect={() => {
+            setSelectTokenType("output")
+            setIsTokenSelectModalOpen(true)
+          }}
+          balance={outputTokenBalance}
+          usdValue={outputTokenUsdValue}
+          isLoadingBalance={isBalancesLoading}
+          readOnly={isInputting === "input"} // Output is read-only if inputting exact amount
+        />
+
+        {isQuoteLoading && (
+          <div className="flex items-center justify-center py-4">
+            <Loader2 className="h-6 w-6 animate-spin mr-2" />
+            <span className="text-muted-foreground">Fetching best route...</span>
+          </div>
+        )}
+
+        {quote && !isQuoteLoading && <SwapDetails quote={quote} inputToken={inputToken} outputToken={outputToken} />}
+
+        {quoteError && !isQuoteLoading && <p className="text-red-500 text-sm text-center mt-4">{quoteError}</p>}
+
+        <Button
+          onClick={handleSwap}
+          className="w-full mt-6"
+          disabled={!canSwap || isQuoteLoading || !inputToken || !outputToken || Number.parseFloat(inputAmount) <= 0}
+        >
+          {isConnecting ? "Connecting Wallet..." : isConnected ? "Swap" : "Connect Wallet"}
+        </Button>
+      </CardContent>
+
+      <TokenSelectModal
+        isOpen={isTokenSelectModalOpen}
+        onClose={() => setIsTokenSelectModalOpen(false)}
+        onSelectToken={handleSelectToken}
+      />
+      <SwapSettings isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+      {quote && inputToken && outputToken && (
+        <SwapConfirmationModal
+          isOpen={isConfirmationModalOpen}
+          onClose={() => setIsConfirmationModalOpen(false)}
+          onConfirm={confirmSwap}
+          quote={quote}
+          inputToken={inputToken}
+          outputToken={outputToken}
+          inputAmount={inputAmount}
+          outputAmount={outputAmount}
+        />
       )}
-    </div>
+    </Card>
   )
 }

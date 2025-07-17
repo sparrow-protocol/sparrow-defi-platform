@@ -1,59 +1,71 @@
-// app/api/transactions/route.ts
-import { NextResponse } from "next/server"
-import { sql } from "@/app/lib/db"
-import type { Transaction } from "@/app/types/common"
+import { type NextRequest, NextResponse } from "next/server"
+import { queryDb } from "@/app/lib/db"
+import type { TransactionRecord } from "@/app/types/transactions"
 
-export async function POST(request: Request) {
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url)
+  const walletAddress = searchParams.get("walletAddress")
+  const limit = Number.parseInt(searchParams.get("limit") || "10", 10)
+  const offset = Number.parseInt(searchParams.get("offset") || "0", 10)
+
+  if (!walletAddress) {
+    return NextResponse.json({ error: "Wallet address is required" }, { status: 400 })
+  }
+
   try {
-    const {
-      userPublicKey,
-      signature,
-      status,
-      type, // New: transaction type
-      inputMint,
-      outputMint,
-      inputAmount,
-      outputAmount,
-      paymentRecipient, // New: Solana Pay specific
-      paymentAmount, // New: Solana Pay specific
-      paymentSplToken, // New: Solana Pay specific
-      paymentLabel, // New: Solana Pay specific
-      paymentMessage, // New: Solana Pay specific
-    } = (await request.json()) as Transaction
-
-    if (!userPublicKey || !type) {
-      return NextResponse.json({ error: "Missing required fields: userPublicKey or type" }, { status: 400 })
-    }
-
-    // Insert the new transaction into the database
-    const result = await sql`
-      INSERT INTO transactions (
-        user_public_key, signature, status, type,
-        input_mint, output_mint, input_amount, output_amount,
-        payment_recipient, payment_amount, payment_spl_token, payment_label, payment_message
-      )
-      VALUES (
-        ${userPublicKey}, ${signature || null}, ${status || "pending"}, ${type},
-        ${inputMint || null}, ${outputMint || null}, ${inputAmount || null}, ${outputAmount || null},
-        ${paymentRecipient || null}, ${paymentAmount || null}, ${paymentSplToken || null}, ${paymentLabel || null}, ${paymentMessage || null}
-      )
-      RETURNING id, created_at;
-    `
-
-    return NextResponse.json({ message: "Transaction saved successfully", transaction: result[0] }, { status: 201 })
-  } catch (error) {
-    console.error("Failed to save transaction:", error)
-    return NextResponse.json({ error: "Failed to save transaction" }, { status: 500 })
+    const transactions = await queryDb<TransactionRecord>(
+      `SELECT * FROM transactions WHERE wallet_address = $1 ORDER BY timestamp DESC LIMIT $2 OFFSET $3`,
+      [walletAddress, limit, offset],
+    )
+    return NextResponse.json(transactions)
+  } catch (error: any) {
+    console.error("Error fetching transactions:", error)
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 })
   }
 }
 
-export async function GET() {
+export async function POST(req: NextRequest) {
   try {
-    // Fetch all transactions (for demonstration purposes)
-    const transactions = await sql`SELECT * FROM transactions ORDER BY created_at DESC;`
-    return NextResponse.json(transactions)
-  } catch (error) {
-    console.error("Failed to fetch transactions:", error)
-    return NextResponse.json({ error: "Failed to fetch transactions" }, { status: 500 })
+    const {
+      walletAddress,
+      signature,
+      transactionType,
+      amount,
+      tokenMint,
+      usdValue,
+      status,
+      fee,
+      paymentRecipient,
+      paymentAmount,
+      paymentTokenMint,
+    } = await req.json()
+
+    if (!walletAddress || !signature || !transactionType || !status) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
+    }
+
+    const result = await queryDb(
+      `INSERT INTO transactions (
+        wallet_address, signature, transaction_type, amount, token_mint, usd_value, status, fee,
+        payment_recipient, payment_amount, payment_token_mint
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
+      [
+        walletAddress,
+        signature,
+        transactionType,
+        amount,
+        tokenMint,
+        usdValue,
+        status,
+        fee,
+        paymentRecipient,
+        paymentAmount,
+        paymentTokenMint,
+      ],
+    )
+    return NextResponse.json(result[0], { status: 201 })
+  } catch (error: any) {
+    console.error("Error inserting transaction:", error)
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 })
   }
 }

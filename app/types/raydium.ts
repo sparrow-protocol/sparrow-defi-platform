@@ -1,16 +1,13 @@
-export interface RaydiumSwapQuote {
-  inAmount: string
-  outAmount: string
-  expectedSlippage: number
-  priceImpactPct: number
-  route: string[]
-  fees?: {
-    platformFee: string
-    liquidityFee: string
-  }
+export interface RaydiumToken {
+  mint: string
+  symbol: string
+  name: string
+  decimals: number
+  icon: string
+  tags: string[]
 }
 
-export interface RaydiumPoolInfo {
+export interface RaydiumPool {
   id: string
   baseMint: string
   quoteMint: string
@@ -27,15 +24,39 @@ export interface RaydiumPoolInfo {
   quoteVault: string
   withdrawQueue: string
   lpVault: string
-  marketId: string
+  marketVersion: number
   marketProgramId: string
+  marketId: string
   marketAuthority: string
   marketBaseVault: string
   marketQuoteVault: string
   marketBids: string
   marketAsks: string
   marketEventQueue: string
-  marketBaseMintDecimals: number
-  marketQuoteMintDecimals: number
+  lookupTableAccount?: string
   official: boolean
+}
+
+export interface RaydiumFarm {
+  id: string
+  lpMint: string
+  rewardMints: string[]
+  version: number
+  programId: string
+  authority: string
+  lpVault: string
+  rewardVaults: string[]
+  poolId: string
+  poolOpenOrders: string
+  poolTargetOrders: string
+  poolWithdrawQueue: string
+  poolLpVault: string
+  poolMarketId: string
+  poolMarketProgramId: string
+  poolMarketAuthority: string
+  poolMarketBaseVault: string
+  poolMarketQuoteVault: string
+  poolMarketBids: string
+  poolMarketAsks: string
+  poolMarketEventQueue: string
 }

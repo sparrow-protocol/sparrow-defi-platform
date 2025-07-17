@@ -1,120 +1,139 @@
-// app/api/solana-pay/route.ts
-import { NextResponse } from "next/server"
-import { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from "@solana/web3.js"
-import { createTransferCheckedInstruction, getAssociatedTokenAddressSync, getMint } from "@solana/spl-token"
-import type { SolanaPayTransactionRequest } from "@/app/types/solana-pay"
+import { type NextRequest, NextResponse } from "next/server"
+import { createTransferInstruction, getAssociatedTokenAddressSync, getAccount } from "@solana/spl-token"
+import {
+  Connection,
+  PublicKey,
+  SystemProgram,
+  type Transaction,
+  LAMPORTS_PER_SOL,
+  VersionedTransaction,
+  TransactionMessage,
+} from "@solana/web3.js"
+import { RPC_URLS, SPL_TOKEN_PROGRAM_ID } from "@/app/lib/constants"
+import { validateSolanaPayTransaction } from "@/app/lib/solana/solana-pay"
 
-// Use Helius RPC if available, otherwise default Solana RPC
-const HELIUS_RPC_URL = process.env.NEXT_PUBLIC_HELIUS_RPC_URL || "https://api.mainnet-beta.solana.com"
-const connection = new Connection(HELIUS_RPC_URL, "confirmed")
+const connection = new Connection(RPC_URLS[0], "confirmed")
 
-export async function POST(request: Request) {
+export async function GET(req: NextRequest) {
   try {
-    const { recipient, amount, splToken, reference, label, message, memo } =
-      (await request.json()) as SolanaPayTransactionRequest
+    const { searchParams } = new URL(req.url)
+    const recipient = searchParams.get("recipient")
+    const amount = searchParams.get("amount")
+    const splToken = searchParams.get("spl-token")
+    const reference = searchParams.get("reference")
+    const label = searchParams.get("label")
+    const message = searchParams.get("message")
 
-    if (!recipient || !amount) {
-      return NextResponse.json({ error: "Missing recipient or amount" }, { status: 400 })
+    if (!recipient) {
+      return NextResponse.json({ error: "Recipient address is required" }, { status: 400 })
     }
 
-    let recipientPubKey: PublicKey
-    try {
-      recipientPubKey = new PublicKey(recipient)
-    } catch (e) {
-      console.error("Invalid recipient public key:", recipient, e)
-      return NextResponse.json({ error: "Invalid recipient public key format." }, { status: 400 })
-    }
-
-    // Placeholder payer, will be replaced by wallet during signing
-    // For transaction creation, we use a dummy payer. The actual payer signs later.
-    const dummyPayer = new PublicKey("11111111111111111111111111111111")
-
-    const transaction = new Transaction()
+    const recipientPublicKey = new PublicKey(recipient)
+    let transaction: Transaction | VersionedTransaction
 
     if (splToken) {
       // SPL Token transfer
-      let mintPubKey: PublicKey
+      const tokenMint = new PublicKey(splToken)
+      const recipientATA = getAssociatedTokenAddressSync(tokenMint, recipientPublicKey, false, SPL_TOKEN_PROGRAM_ID)
+
+      // Check if recipient ATA exists, if not, the payer will need to create it
+      // For Solana Pay, the merchant usually ensures the ATA exists or handles its creation.
+      // For simplicity, we assume it exists for now.
       try {
-        mintPubKey = new PublicKey(splToken)
+        await getAccount(connection, recipientATA, "confirmed", SPL_TOKEN_PROGRAM_ID)
       } catch (e) {
-        console.error("Invalid SPL token mint public key:", splToken, e)
-        return NextResponse.json({ error: "Invalid SPL token mint public key format." }, { status: 400 })
+        console.warn(`Recipient ATA for ${splToken} does not exist for ${recipient}.`)
+        // In a real app, you might return an error or provide instructions for ATA creation.
+        return NextResponse.json(
+          { error: "Recipient token account not found. Please create it first." },
+          { status: 400 },
+        )
       }
 
-      const mintInfo = await getMint(connection, mintPubKey)
-      const amountInSmallestUnits = Math.round(amount * Math.pow(10, mintInfo.decimals))
+      const transferAmount = amount ? Number.parseFloat(amount) * Math.pow(10, 6) : 0 // Assuming 6 decimals for common tokens like USDC/USDT
+      if (transferAmount <= 0) {
+        return NextResponse.json({ error: "Invalid SPL token amount" }, { status: 400 })
+      }
 
-      // These ATAs are for the *sender* and *recipient*.
-      // The sender's ATA will be derived from the actual sender's public key during wallet interaction.
-      // For now, we use the dummyPayer for the sender's ATA derivation in the instruction.
-      const senderTokenAccount = getAssociatedTokenAddressSync(mintPubKey, dummyPayer, true) // allowOwnerOffCurve: true for dummy
-      const recipientTokenAccount = getAssociatedTokenAddressSync(mintPubKey, recipientPubKey, true) // allowOwnerOffCurve: true for dummy
-
-      transaction.add(
-        createTransferCheckedInstruction(
-          senderTokenAccount,
-          mintPubKey,
-          recipientTokenAccount,
-          dummyPayer, // This would be the sender's public key when signed
-          amountInSmallestUnits,
-          mintInfo.decimals,
+      const ix = createTransferInstruction(
+        // Placeholder: Payer's ATA will be determined by the wallet signing the transaction
+        // This is a dummy source, the wallet will replace it with the actual source ATA
+        getAssociatedTokenAddressSync(
+          tokenMint,
+          new PublicKey("11111111111111111111111111111111"),
+          false,
+          SPL_TOKEN_PROGRAM_ID,
         ),
+        recipientATA,
+        new PublicKey("11111111111111111111111111111111"), // Dummy owner, replaced by wallet
+        transferAmount,
+        [],
+        SPL_TOKEN_PROGRAM_ID,
       )
+
+      // Solana Pay requires a transaction to be returned, which the wallet will then sign.
+      // The payer will be set by the wallet.
+      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("finalized")
+      const transactionMessage = new TransactionMessage({
+        payerKey: new PublicKey("11111111111111111111111111111111"), // Dummy payer, replaced by wallet
+        recentBlockhash: blockhash,
+        instructions: [ix],
+      }).compileToLegacyMessage()
+
+      transaction = new VersionedTransaction(transactionMessage)
     } else {
       // SOL transfer
-      transaction.add(
-        SystemProgram.transfer({
-          fromPubkey: dummyPayer, // This would be the sender's public key when signed
-          toPubkey: recipientPubKey,
-          lamports: Math.round(amount * LAMPORTS_PER_SOL),
-        }),
-      )
+      const solAmount = amount ? Number.parseFloat(amount) : 0
+      if (solAmount <= 0) {
+        return NextResponse.json({ error: "Invalid SOL amount" }, { status: 400 })
+      }
+
+      const ix = SystemProgram.transfer({
+        fromPubkey: new PublicKey("11111111111111111111111111111111"), // Dummy payer, replaced by wallet
+        toPubkey: recipientPublicKey,
+        lamports: solAmount * LAMPORTS_PER_SOL,
+      })
+
+      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("finalized")
+      const transactionMessage = new TransactionMessage({
+        payerKey: new PublicKey("11111111111111111111111111111111"), // Dummy payer, replaced by wallet
+        recentBlockhash: blockhash,
+        instructions: [ix],
+      }).compileToLegacyMessage()
+
+      transaction = new VersionedTransaction(transactionMessage)
     }
 
-    // Add optional references, label, message, memo
-    // Solana Pay references are typically added as instruction keys or in a memo.
-    // For simplicity and broad compatibility, we'll primarily rely on the URL parameters for Solana Pay.
-    // If a memo is provided, add it as a separate instruction.
-    if (memo) {
-      // Note: Memo program ID is fixed.
-      transaction.add(
-        new Transaction({
-          recentBlockhash: "11111111111111111111111111111111", // Placeholder, will be replaced
-          feePayer: dummyPayer, // Placeholder, will be replaced
-        }).add(SystemProgram.memo({ memo })).instructions[0], // Extract the instruction
-      )
-    }
+    // Serialize the transaction for the response
+    const serializedTransaction = Buffer.from(transaction.serialize()).toString("base64")
 
-    // Set recent blockhash and fee payer (will be overridden by wallet)
-    const { blockhash } = await connection.getLatestBlockhash()
-    transaction.recentBlockhash = blockhash
-    transaction.feePayer = dummyPayer
-
-    // Serialize the transaction for Solana Pay URL
-    // requireAllSignatures: false because the sender hasn't signed yet.
-    const serializedTransaction = transaction.serialize({ requireAllSignatures: false, verifySignatures: false })
-    const transactionBase64 = serializedTransaction.toString("base64")
-
-    // Construct the Solana Pay URL
-    const solanaPayUrl = new URL(`solana:${recipientPubKey.toBase58()}`)
-    solanaPayUrl.searchParams.append("amount", amount.toString())
-    if (splToken) {
-      solanaPayUrl.searchParams.append("spl-token", splToken.toBase58())
-    }
-    if (label) {
-      solanaPayUrl.searchParams.append("label", label)
-    }
-    if (message) {
-      solanaPayUrl.searchParams.append("message", message)
-    }
-    if (reference && reference.length > 0) {
-      reference.forEach((ref) => solanaPayUrl.searchParams.append("reference", ref.toBase58()))
-    }
-
-    return NextResponse.json({ solanaPayUrl: solanaPayUrl.toString(), transaction: transactionBase64 }, { status: 200 })
+    return NextResponse.json({
+      transaction: serializedTransaction,
+      message: message || "Payment Request",
+    })
   } catch (error: any) {
-    console.error("Failed to create Solana Pay transaction:", error)
-    // Provide a more generic error message to the client for security/simplicity
-    return NextResponse.json({ error: error.message || "Failed to create Solana Pay transaction" }, { status: 500 })
+    console.error("Error generating Solana Pay transaction:", error)
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 })
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const { account, transaction, message, signature } = await req.json()
+
+    if (!account || !transaction || !signature) {
+      return NextResponse.json({ error: "Missing required parameters for transaction validation" }, { status: 400 })
+    }
+
+    const isValid = await validateSolanaPayTransaction(connection, new PublicKey(account), transaction, signature)
+
+    if (isValid) {
+      return NextResponse.json({ message: "Transaction validated successfully!" })
+    } else {
+      return NextResponse.json({ error: "Transaction validation failed." }, { status: 400 })
+    }
+  } catch (error: any) {
+    console.error("Error validating Solana Pay transaction:", error)
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 })
   }
 }

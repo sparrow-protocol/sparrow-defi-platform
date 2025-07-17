@@ -6,27 +6,34 @@ export interface SwapSettings {
   platformFeeBps: number
 }
 
-export type TransactionStatus = "pending" | "completed" | "failed"
-export type TransactionType = "swap" | "payment"
+export type TransactionStatus = "pending" | "confirmed" | "failed"
+export type TransactionType = "swap" | "payment" | "transfer" | "mint" | "burn" | "unknown"
 
 export interface Transaction {
-  id?: number
+  id: string
   userPublicKey: string
-  signature?: string | null
-  status?: TransactionStatus
-  createdAt?: string
+  signature: string | null
+  status: TransactionStatus
   type: TransactionType
+  inputMint?: string | null
+  outputMint?: string | null
+  inputAmount?: number | null
+  outputAmount?: number | null
+  paymentRecipient?: string | null
+  paymentAmount?: number | null
+  paymentSplToken?: string | null
+  paymentLabel?: string | null
+  paymentMessage?: string | null
+  createdAt: Date
+  updatedAt?: Date
+}
 
-  // Swap-specific
-  inputMint?: string
-  outputMint?: string
-  inputAmount?: string // Amount in smallest units
-  outputAmount?: string // Amount in smallest units
-
-  // Payment-specific (Solana Pay)
-  paymentRecipient?: string
-  paymentAmount?: string // In SOL or smallest units of SPL token
-  paymentSplToken?: string // Mint address of SPL token
-  paymentLabel?: string
-  paymentMessage?: string
+export interface TokenMetadata {
+  mint: string
+  name: string
+  symbol: string
+  decimals: number
+  logoURI?: string
+  tags?: string[]
+  extensions?: { [key: string]: any }
 }

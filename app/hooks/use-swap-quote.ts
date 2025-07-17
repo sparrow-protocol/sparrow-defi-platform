@@ -1,73 +1,96 @@
-import { useEffect, useState } from "react"
-import { useJupiter } from "@jup-ag/react-hook"
-import JSBI from "jsbi"
-import type { UseSwapQuoteProps, UseSwapQuoteResult } from "@/components/swap/types/types"
+"use client"
 
-export const useSwapQuote = ({
-  inputAmount,
-  sellingToken,
-  buyingToken,
-  slippage,
-  platformFeeBps,
-  platformFeeAccount,
-  showToast,
-}: UseSwapQuoteProps): UseSwapQuoteResult => {
-  const [outputAmount, setOutputAmount] = useState<string>("")
-  const [quote, setQuote] = useState<any>(null)
+import { useState, useEffect, useCallback } from "react"
+import { useSwapSettings } from "@/app/context/swap-settings"
+import { getSwapQuote } from "@/server/actions/swap"
+import type { TokenInfo } from "@/app/types/tokens"
+import type { JupiterRoute } from "@/app/types/jupiter"
+import { useToast } from "@/hooks/use-toast"
+import { TRANSACTION_LIMITS } from "@/app/lib/constants"
 
-  const amountInSmallestUnits =
-    sellingToken && !isNaN(Number(inputAmount))
-      ? Math.floor(Number(inputAmount) * 10 ** sellingToken.decimals)
-      : 0
+export function useSwapQuote(
+  inputToken: TokenInfo | null,
+  outputToken: TokenInfo | null,
+  amount: string,
+  swapMode: "ExactIn" | "ExactOut" = "ExactIn",
+) {
+  const { slippageBps } = useSwapSettings()
+  const { toast } = useToast()
 
-  const jupiter = useJupiter({
-    amount: JSBI.BigInt(amountInSmallestUnits),
-    inputMint: sellingToken?.address,
-    outputMint: buyingToken?.address,
-    slippageBps: JSBI.BigInt(Math.floor(slippage * 100)),
-    platformFeeBps: platformFeeBps ? JSBI.BigInt(platformFeeBps) : undefined,
-  })
+  const [quote, setQuote] = useState<JupiterRoute | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [lastFetchedAmount, setLastFetchedAmount] = useState<string | null>(null)
 
-  const { quoteResponseMeta, loading: isFetchingQuote, error, fetchQuote } = jupiter
-
-  useEffect(() => {
-    if (!inputAmount || amountInSmallestUnits <= 0) {
+  const fetchQuote = useCallback(async () => {
+    if (!inputToken || !outputToken || !amount || Number.parseFloat(amount) <= 0) {
       setQuote(null)
-      setOutputAmount("")
+      setError(null)
+      setIsLoading(false)
       return
     }
 
-    fetchQuote()
-      .then((res) => {
-        const qr = res?.quoteResponse
-        setQuote(qr ?? null)
-      })
-      .catch((e) => {
-        console.error(e)
+    // Prevent fetching for the same amount repeatedly
+    if (amount === lastFetchedAmount) {
+      return
+    }
+
+    setIsLoading(true)
+    setError(null)
+    setLastFetchedAmount(amount)
+
+    try {
+      const quoteData = await getSwapQuote(
+        inputToken.address,
+        outputToken.address,
+        Number.parseFloat(amount),
+        slippageBps,
+        swapMode,
+      )
+
+      if (quoteData) {
+        setQuote(quoteData)
+      } else {
         setQuote(null)
+        setError("No swap route found for the given tokens and amount.")
+        toast({
+          title: "No Route Found",
+          description: "Could not find a swap route. Try a different amount or tokens.",
+          variant: "warning",
+        })
+      }
+    } catch (err: any) {
+      console.error("Error fetching swap quote:", err)
+      setQuote(null)
+      setError(err.message || "Failed to fetch swap quote.")
+      toast({
+        title: "Error Fetching Quote",
+        description: err.message || "An unexpected error occurred while fetching the swap quote.",
+        variant: "destructive",
       })
-  }, [inputAmount, amountInSmallestUnits, fetchQuote])
+    } finally {
+      setIsLoading(false)
+    }
+  }, [inputToken, outputToken, amount, slippageBps, swapMode, lastFetchedAmount, toast])
 
   useEffect(() => {
-    if (!quote || !buyingToken) {
-      setOutputAmount("")
-      return
-    }
-    const out = Number(quote.outAmount) / 10 ** buyingToken.decimals
-    setOutputAmount(out.toFixed(buyingToken.decimals))
-  }, [quote, buyingToken])
+    const handler = setTimeout(() => {
+      fetchQuote()
+    }, 500) // Debounce fetching to avoid excessive API calls
 
+    return () => clearTimeout(handler)
+  }, [fetchQuote])
+
+  // Auto-refresh quote at intervals
   useEffect(() => {
-    if (error) {
-      showToast({ message: "Error fetching quote.", type: "error" })
-    } else if (!isFetchingQuote && !quote && amountInSmallestUnits > 0) {
-      showToast({ message: "No routes found for this token pair.", type: "error" })
-    }
-  }, [error, isFetchingQuote, quote, amountInSmallestUnits, showToast])
+    const interval = setInterval(() => {
+      if (!isLoading && !error && quote) {
+        fetchQuote()
+      }
+    }, TRANSACTION_LIMITS.QUOTE_REFRESH_INTERVAL)
 
-  return {
-    quote,
-    outputAmount,
-    isFetchingQuote,
-  }
+    return () => clearInterval(interval)
+  }, [isLoading, error, quote, fetchQuote])
+
+  return { quote, isLoading, error, refetchQuote: fetchQuote }
 }

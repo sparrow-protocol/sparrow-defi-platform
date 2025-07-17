@@ -1,4 +1,3 @@
-// app/lib/rate-limit.ts
 interface RateLimitOptions {
   intervalMs: number // Time interval in milliseconds
   maxCalls: number // Maximum calls within the interval

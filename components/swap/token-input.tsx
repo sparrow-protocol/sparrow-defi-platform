@@ -1,115 +1,90 @@
 "use client"
 
-import type React from "react"
-import Image from "next/image"
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Button } from "@/components/ui/button"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ChevronDown } from "lucide-react"
-import type { Token } from "@/app/types/tokens"
-import { formatNumber } from "@/app/lib/format"
+import { formatCurrency, formatTokenAmount } from "@/app/lib/format"
+import type { TokenInfo } from "@/app/types/tokens"
+import { Skeleton } from "@/components/ui/skeleton"
 
 interface TokenInputProps {
   label: string
   amount: string
-  onAmountChange: (e: React.ChangeEvent<HTMLInputElement>) => void
-  selectedToken: Token | null
-  onSelectTokenClick: () => void
-  balance?: number | null
+  onAmountChange: (amount: string) => void
+  token: TokenInfo | null
+  onTokenSelect: () => void
+  balance?: number
   onMaxClick?: () => void
-  onHalfClick?: () => void
+  usdValue?: number
   readOnly?: boolean
-  isFetchingQuote?: boolean
-  usdValue?: string
+  isLoadingBalance?: boolean
 }
 
 export function TokenInput({
   label,
   amount,
   onAmountChange,
-  selectedToken,
-  onSelectTokenClick,
+  token,
+  onTokenSelect,
   balance,
   onMaxClick,
-  onHalfClick,
+  usdValue,
   readOnly = false,
-  isFetchingQuote = false,
-  usdValue = "$0",
+  isLoadingBalance = false,
 }: TokenInputProps) {
-  const showBalance = balance !== undefined && balance !== null && !isNaN(balance)
-
   return (
-    <div className="rounded-lg bg-input-bg-light p-4 dark:bg-input-bg-dark shadow-sm">
-      <div className="flex items-center justify-between text-sm text-black/70 dark:text-light-gray mb-2">
-        <span>{label}</span>
-        {showBalance && (
-          <div className="flex items-center space-x-2">
-            <span>
-              Balance: {formatNumber(balance, 6)} {selectedToken?.symbol}
-            </span>
-            {onHalfClick && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 rounded-md bg-medium-gray px-2 text-xs text-black hover:bg-light-gray dark:bg-dark-gray dark:text-white dark:hover:bg-medium-gray"
-                onClick={onHalfClick}
-              >
-                HALF
-              </Button>
+    <div className="space-y-2">
+      <div className="flex justify-between items-center">
+        <Label>{label}</Label>
+        {balance !== undefined && (
+          <div className="text-sm text-muted-foreground flex items-center">
+            Balance:{" "}
+            {isLoadingBalance ? (
+              <Skeleton className="h-4 w-16 ml-1" />
+            ) : (
+              <span className="font-medium ml-1">{formatTokenAmount(balance, token?.decimals || 6, 4)}</span>
             )}
             {onMaxClick && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 rounded-md bg-medium-gray px-2 text-xs text-black hover:bg-light-gray dark:bg-dark-gray dark:text-white dark:hover:bg-medium-gray"
-                onClick={onMaxClick}
-              >
+              <Button variant="link" size="sm" onClick={onMaxClick} className="h-auto p-0 ml-2 text-xs">
                 MAX
               </Button>
             )}
           </div>
         )}
       </div>
-
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+      <div className="flex items-center gap-2">
+        <Input
+          type="number"
+          placeholder="0.0"
+          value={amount}
+          onChange={(e) => onAmountChange(e.target.value)}
+          className="flex-1 text-lg py-2"
+          readOnly={readOnly}
+        />
         <Button
-          onClick={onSelectTokenClick}
-          className="flex items-center space-x-2 rounded-md bg-medium-gray px-3 py-2 text-lg font-semibold text-black hover:bg-light-gray dark:bg-dark-gray dark:text-white dark:hover:bg-medium-gray"
+          variant="outline"
+          className="flex items-center gap-2 px-3 py-2 h-auto bg-transparent"
+          onClick={onTokenSelect}
         >
-          {selectedToken ? (
+          {token ? (
             <>
-              <Image
-                src={selectedToken.icon || "/placeholder.svg"}
-                alt={`${selectedToken.symbol} icon`}
-                width={24}
-                height={24}
-                className="rounded-full"
-              />
-              <span>{selectedToken.symbol}</span>
+              <Avatar className="h-6 w-6">
+                <AvatarImage src={token.logoURI || "/placeholder.svg"} alt={token.symbol} />
+                <AvatarFallback>{token.symbol.slice(0, 2).toUpperCase()}</AvatarFallback>
+              </Avatar>
+              <span className="font-semibold">{token.symbol}</span>
             </>
           ) : (
-            <span>Select Token</span>
+            <span className="font-semibold">Select Token</span>
           )}
-          <ChevronDown className="h-4 w-4 text-gold" />
+          <ChevronDown className="h-4 w-4" />
         </Button>
-
-        <div className="text-right w-full sm:w-auto">
-          <Input
-            type="number"
-            inputMode="decimal"
-            placeholder="0.00"
-            value={isFetchingQuote && !readOnly ? "Fetching..." : amount}
-            onChange={(e) => {
-              const value = e.target.value
-              if (/^\d*\.?\d*$/.test(value)) {
-                onAmountChange(e)
-              }
-            }}
-            readOnly={readOnly || isFetchingQuote}
-            className="w-full sm:w-32 border-none bg-transparent text-right text-3xl font-bold text-black focus:ring-0 dark:text-white"
-          />
-          <div className="text-sm text-black/70 dark:text-light-gray">{usdValue}</div>
-        </div>
       </div>
+      {usdValue !== undefined && (
+        <div className="text-sm text-muted-foreground text-right">~{formatCurrency(usdValue)}</div>
+      )}
     </div>
   )
 }

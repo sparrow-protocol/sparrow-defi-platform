@@ -3,27 +3,28 @@
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import type { JupiterQuoteResponse } from "@/app/types/api"
-import type { Token } from "@/app/types/tokens"
-import { formatNumber } from "@/app/lib/format"
+import { Separator } from "@/components/ui/separator"
+import { formatTokenAmount, formatCurrency, formatPercentage } from "@/app/lib/format"
+import type { JupiterRoute } from "@/app/types/jupiter"
+import type { TokenInfo } from "@/app/types/tokens"
 import { Loader2 } from "lucide-react"
+import { useState } from "react"
 
 interface SwapConfirmationModalProps {
   isOpen: boolean
   onClose: () => void
   onConfirm: () => void
-  quote: JupiterQuoteResponse | null
-  sellingToken: Token | null
-  buyingToken: Token | null
+  quote: JupiterRoute
+  inputToken: TokenInfo
+  outputToken: TokenInfo
   inputAmount: string
   outputAmount: string
-  isSwapping: boolean
 }
 
 export function SwapConfirmationModal({
@@ -31,85 +32,82 @@ export function SwapConfirmationModal({
   onClose,
   onConfirm,
   quote,
-  sellingToken,
-  buyingToken,
+  inputToken,
+  outputToken,
   inputAmount,
   outputAmount,
-  isSwapping,
 }: SwapConfirmationModalProps) {
-  if (!quote || !sellingToken || !buyingToken) return null
+  const [isConfirming, setIsConfirming] = useState(false)
 
-  const priceImpact = (quote.priceImpactPct ?? 0) * 100
+  const handleConfirm = async () => {
+    setIsConfirming(true)
+    await onConfirm()
+    setIsConfirming(false)
+    // Modal will be closed by parent after transaction status is handled
+  }
 
-  const inputDecimals = sellingToken.decimals ?? 0
-  const outputDecimals = buyingToken.decimals ?? 0
+  const inputAmountFormatted = formatTokenAmount(Number.parseFloat(inputAmount), inputToken.decimals)
+  const outputAmountFormatted = formatTokenAmount(Number.parseFloat(outputAmount), outputToken.decimals)
 
-  const formattedInput = formatNumber(parseFloat(inputAmount), 6)
-  const formattedOutput = formatNumber(parseFloat(outputAmount), 6)
+  const minReceived = quote.outAmountWithSlippage
+    ? formatTokenAmount(Number.parseFloat(quote.outAmountWithSlippage), outputToken.decimals)
+    : "N/A"
+  const priceImpact = formatPercentage(quote.priceImpactPct * 100)
+  const slippageTolerance = formatPercentage(quote.slippageBps / 100)
 
-  const minReceived =
-    Number(quote.outAmountWithSlippage) / Math.pow(10, outputDecimals)
-
-  const platformFee =
-    quote.platformFee?.amount &&
-    formatNumber(
-      Number(quote.platformFee.amount) / Math.pow(10, inputDecimals),
-      6
-    )
+  // Calculate estimated fees (simplified, Jupiter quote provides more detail)
+  const totalFees = quote.fees?.totalFeeAndDeposits
+    ? formatCurrency(quote.fees.totalFeeAndDeposits / 1_000_000_000)
+    : "N/A"
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px] bg-white dark:bg-dark-gray text-black dark:text-white border-light-gray dark:border-medium-gray rounded-md">
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle className="text-gold">Confirm Swap</DialogTitle>
-          <DialogDescription className="text-black/70 dark:text-light-gray">
-            Review the details of your swap before confirming.
-          </DialogDescription>
+          <DialogTitle>Confirm Swap</DialogTitle>
+          <DialogDescription>Review the details before confirming your swap.</DialogDescription>
         </DialogHeader>
-
-        <div className="grid gap-4 py-4 text-black dark:text-white">
+        <div className="grid gap-4 py-4">
           <div className="flex justify-between items-center">
-            <span className="text-black/70 dark:text-light-gray">You are selling:</span>
-            <span className="font-semibold text-lg">
-              {formattedInput} {sellingToken.symbol}
+            <span className="text-muted-foreground">You Pay</span>
+            <span className="text-lg font-semibold">
+              {inputAmountFormatted} {inputToken.symbol}
             </span>
           </div>
-
           <div className="flex justify-between items-center">
-            <span className="text-black/70 dark:text-light-gray">You will receive:</span>
-            <span className="font-semibold text-lg">
-              {formattedOutput} {buyingToken.symbol}
+            <span className="text-muted-foreground">You Receive</span>
+            <span className="text-lg font-semibold">
+              {outputAmountFormatted} {outputToken.symbol}
             </span>
           </div>
 
-          <div className="flex justify-between items-center text-sm">
-            <span className="text-black/70 dark:text-light-gray">Price Impact:</span>
-            <span className={priceImpact > 1 ? "text-negative-red" : "text-positive-green"}>
-              {formatNumber(priceImpact, 2)}%
-            </span>
-          </div>
+          <Separator className="my-2" />
 
-          <div className="flex justify-between items-center text-sm">
-            <span className="text-black/70 dark:text-light-gray">Minimum Received:</span>
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Minimum Received</span>
             <span>
-              {formatNumber(minReceived, 6)} {buyingToken.symbol}
+              {minReceived} {outputToken.symbol}
             </span>
           </div>
-
-          {platformFee && (
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-black/70 dark:text-light-gray">Platform Fee:</span>
-              <span>{platformFee} {sellingToken.symbol}</span>
-            </div>
-          )}
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Price Impact</span>
+            <span>{priceImpact}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Slippage Tolerance</span>
+            <span>{slippageTolerance}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Estimated Network Fees</span>
+            <span>{totalFees} SOL</span>
+          </div>
         </div>
-
         <DialogFooter>
-          <Button variant="ghost" onClick={onClose} disabled={isSwapping}>
+          <Button variant="outline" onClick={onClose} disabled={isConfirming}>
             Cancel
           </Button>
-          <Button variant="gold-filled" onClick={onConfirm} disabled={isSwapping}>
-            {isSwapping ? (
+          <Button onClick={handleConfirm} disabled={isConfirming}>
+            {isConfirming ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Confirming...
               </>
