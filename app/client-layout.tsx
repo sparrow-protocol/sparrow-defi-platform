@@ -1,77 +1,25 @@
 "use client"
 
-import type React from "react"
-
+import { AnimatePresence, motion } from "framer-motion"
 import { usePathname } from "next/navigation"
-import { Header } from "@/components/ui/header"
-import { Footer } from "@/components/ui/footer"
-import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar"
-import { AppSidebar } from "@/components/app-sidebar"
-import { Separator } from "@/components/ui/separator"
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
-import { useIsMobile } from "@/app/hooks/use-media-query"
-import { useEffect, useState } from "react"
+import { Providers } from "@/components/providers"
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const isMobile = useIsMobile()
-  const [isMounted, setIsMounted] = useState(false)
-
-  useEffect(() => {
-    setIsMounted(true)
-  }, [])
-
-  if (!isMounted) {
-    return null // Or a loading spinner
-  }
-
-  const getBreadcrumbs = () => {
-    const pathSegments = pathname.split("/").filter((segment) => segment)
-    const breadcrumbs = [{ label: "Home", href: "/" }]
-
-    pathSegments.forEach((segment, index) => {
-      const href = "/" + pathSegments.slice(0, index + 1).join("/")
-      const label = segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, " ")
-      breadcrumbs.push({ label, href })
-    })
-
-    return breadcrumbs
-  }
-
-  const breadcrumbs = getBreadcrumbs()
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <Header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-          {isMobile && <SidebarTrigger className="-ml-1" />}
-          {isMobile && <Separator orientation="vertical" className="mr-2 h-4" />}
-          <Breadcrumb>
-            <BreadcrumbList>
-              {breadcrumbs.map((crumb, index) => (
-                <BreadcrumbItem key={crumb.href}>
-                  {index < breadcrumbs.length - 1 ? (
-                    <BreadcrumbLink href={crumb.href}>{crumb.label}</BreadcrumbLink>
-                  ) : (
-                    <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
-                  )}
-                  {index < breadcrumbs.length - 1 && <BreadcrumbSeparator />}
-                </BreadcrumbItem>
-              ))}
-            </BreadcrumbList>
-          </Breadcrumb>
-        </Header>
-        <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">{children}</main>
-        <Footer />
-      </SidebarInset>
-    </SidebarProvider>
+    <Providers>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={pathname}
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -16 }}
+          transition={{ duration: 0.25 }}
+        >
+          {children}
+        </motion.div>
+      </AnimatePresence>
+    </Providers>
   )
 }

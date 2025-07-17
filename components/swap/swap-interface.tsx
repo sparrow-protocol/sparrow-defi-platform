@@ -17,8 +17,8 @@ import { formatTokenAmount } from "@/app/lib/format"
 import { useTokenBalances } from "@/app/hooks/use-token-balances"
 import { SOL_MINT, USDC_MINT, ERROR_MESSAGES } from "@/app/lib/constants"
 import { TokenInput } from "@/components/swap/token-input"
-import { UI_CONFIG } from "@/app/lib/ui-config" // Import UI_CONFIG
-import { truncatePublicKey } from "@/app/lib/utils" // Import truncatePublicKey
+import { UI_CONFIG } from "@/app/lib/ui-config"
+import { truncatePublicKey } from "@/app/lib/utils"
 
 export function SwapInterface() {
   const { address, isConnected, signTransaction, signAllTransactions } = useWallet()
@@ -125,7 +125,7 @@ export function SwapInterface() {
     setOutputToken(inputToken)
     setInputAmount(outputAmount)
     setOutputAmount(inputAmount)
-    setIsInputting(isInputting === "input" ? "output" : "input") // Maintain the active input field
+    setIsInputting(isInputting === "input" ? "output" : "input")
   }, [inputToken, outputToken, inputAmount, outputAmount, isInputting])
 
   const handleMaxInput = useCallback(() => {
@@ -136,7 +136,7 @@ export function SwapInterface() {
       let amount = balance.balance
       // Deduct a small amount for SOL if it's the input token to cover transaction fees
       if (inputToken.address === SOL_MINT) {
-        amount = Math.max(0, amount - 0.005) // Leave 0.005 SOL for fees
+        amount = Math.max(0, amount - 0.005) // 0.005 SOL for fees
       }
       setInputAmount(amount.toString())
       setIsInputting("input")
@@ -225,7 +225,7 @@ export function SwapInterface() {
         })
         setInputAmount("")
         setOutputAmount("")
-        refetchBalances() // Refresh balances after successful swap
+        refetchBalances()
       } else {
         toast({
           title: "Swap Failed",
@@ -305,7 +305,7 @@ export function SwapInterface() {
           balance={outputTokenBalance}
           usdValue={outputTokenUsdValue}
           isLoadingBalance={isBalancesLoading}
-          readOnly={isInputting === "input"} // Output is read-only if inputting exact amount
+          readOnly={isInputting === "input"}
         />
 
         {isQuoteLoading && (

@@ -34,13 +34,13 @@
 
     --radius: 0.5rem;
 
-    /* Custom Colors for Sparrow */
-    --gold: 40 90% 50%; /* A warm gold color */
-    --dark-gold: 40 90% 40%; /* A darker shade of gold */
-    --light-gold: 40 90% 60%; /* A lighter shade of gold */
-    --negative-red: 0 80% 50%; /* For negative values/errors */
-    --positive-green: 120 60% 40%; /* For positive values/success */
-    --light-gray: 210 20% 90%; /* For light text/elements in dark mode */
+    /* Sparrow Custom Colors */
+    --gold: 40 90% 50%;
+    --dark-gold: 40 90% 40%;
+    --light-gold: 40 90% 60%;
+    --negative-red: 0 80% 50%;
+    --positive-green: 120 60% 40%;
+    --light-gray: 210 20% 90%;
   }
 
   .dark {
@@ -72,7 +72,7 @@
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
 
-    /* Custom Colors for Sparrow in Dark Mode */
+    /* Sparrow Custom Dark Colors */
     --gold: 40 90% 50%;
     --dark-gold: 40 90% 40%;
     --light-gold: 40 90% 60%;
@@ -80,44 +80,48 @@
     --positive-green: 120 60% 40%;
     --light-gray: 210 20% 90%;
   }
-}
 
-@layer base {
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
   }
 }
 
-/* Custom Tailwind Utilities */
 @layer utilities {
   .text-gold {
     color: hsl(var(--gold));
   }
+
   .bg-gold {
     background-color: hsl(var(--gold));
   }
+
   .hover\:bg-gold-dark:hover {
     background-color: hsl(var(--dark-gold));
   }
+
   .text-negative-red {
     color: hsl(var(--negative-red));
   }
+
   .text-positive-green {
     color: hsl(var(--positive-green));
   }
+
   .text-light-gray {
     color: hsl(var(--light-gray));
   }
 }
 
-/* Custom Button Variants */
-.btn-gold-filled {
-  @apply bg-gold text-primary-foreground hover:bg-dark-gold;
-}
+@layer components {
+  .btn-gold-filled {
+    @apply bg-gold text-primary-foreground hover:bg-dark-gold;
+  }
 
-.btn-gold-outline {
-  @apply border border-gold text-gold hover:bg-gold hover:text-primary-foreground;
+  .btn-gold-outline {
+    @apply border border-gold text-gold hover:bg-gold hover:text-primary-foreground;
+  }
 }

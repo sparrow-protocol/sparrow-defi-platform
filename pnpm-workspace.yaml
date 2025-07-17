@@ -1,9 +1,13 @@
 ignoredBuiltDependencies:
+  - '@prisma/engines'
+  - '@reown/appkit'
   - bigint-buffer
   - blake-hash
   - bufferutil
+  - prisma
   - protobufjs
   - sharp
   - tiny-secp256k1
+  - unrs-resolver
   - usb
   - utf-8-validate

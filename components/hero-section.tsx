@@ -1,3 +1,6 @@
+"use client"
+
+import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
@@ -5,12 +8,21 @@ import { ArrowRight } from "lucide-react"
 export function HeroSection() {
   return (
     <section
+      aria-labelledby="hero-heading"
       className="relative flex h-[500px] items-center justify-center overflow-hidden rounded-xl bg-cover bg-center p-8 text-center text-white shadow-lg"
       style={{ backgroundImage: "url('/images/hero-background.png')" }}
     >
       <div className="absolute inset-0 bg-black/50" />
-      <div className="relative z-10 space-y-6">
-        <h1 className="text-5xl font-bold leading-tight md:text-6xl">Trade, Earn, and Build on Solana</h1>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
+        className="relative z-10 space-y-6"
+      >
+        <h1 id="hero-heading" className="text-5xl font-bold leading-tight md:text-6xl">
+          Trade, Earn, and Build on Solana
+        </h1>
         <p className="text-lg md:text-xl max-w-2xl mx-auto">
           Experience the future of decentralized finance with lightning-fast transactions and low fees.
         </p>
@@ -29,7 +41,7 @@ export function HeroSection() {
             <Link href="/about">Learn More</Link>
           </Button>
         </div>
-      </div>
+      </motion.div>
     </section>
   )
 }
