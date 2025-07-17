@@ -8,7 +8,7 @@ import type { VersionedTransaction } from "@solana/web3.js"
 import { ConnectionProvider, WalletProvider as SolanaWalletProvider } from "@solana/wallet-adapter-react"
 import { WalletAdapterNetwork } from "@solana/wallet-adapter-base"
 import { clusterApiUrl } from "@solana/web3.js"
-import { PhantomWalletAdapter, SolflareWalletAdapter, BackpackWalletAdapter } from "@solana/wallet-adapter-wallets"
+import { PhantomWalletAdapter, SolflareWalletAdapter } from "@solana/wallet-adapter-wallets"
 import { WalletModalProvider } from "@solana/wallet-adapter-react-ui"
 import { PrivyProvider } from "@privy-io/react-auth"
 import { RPC_URLS } from "@/app/lib/constants"
@@ -38,7 +38,6 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
     () => [
       new PhantomWalletAdapter(),
       new SolflareWalletAdapter({ network }),
-      new BackpackWalletAdapter(),
       // Add other wallets here
     ],
     [network],
@@ -55,7 +54,7 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
         loginMethods: ["email", "wallet", "google", "apple"],
         appearance: {
           theme: "dark", // Or "light" based on your app's theme
-          accentColor: "#676FFF",
+          accentColor: "#151200ff",
           logo: "/images/sparrow-icon-white.png",
         },
         // Replace this with your desired redirect URLs
